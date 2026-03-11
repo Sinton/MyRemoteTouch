@@ -19,7 +19,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: http://localhost:9100; connect-src 'self' http://localhost:8100 http://localhost:9100"
+      "csp": "default-src 'self'; img-src 'self' data: http://localhost:9100; connect-src 'self' http://localhost:9100"
     }
   },
   "bundle": {

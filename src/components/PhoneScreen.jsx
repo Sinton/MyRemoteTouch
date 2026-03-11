@@ -71,11 +71,13 @@ const PhoneScreen = () => {
       if (distance < 10) {
         // 点击
         const pos = getCoord(e.clientX, e.clientY);
+        console.log(`触发点击: x=${pos.x}, y=${pos.y} (浏览器坐标: ${e.clientX}, ${e.clientY})`);
         await invoke("send_tap", { x: pos.x, y: pos.y });
       } else {
         // 滑动
         const from = getCoord(mouseDownPos.current.x, mouseDownPos.current.y);
         const to = getCoord(e.clientX, e.clientY);
+        console.log(`触发滑动: from(${from.x}, ${from.y}) to(${to.x}, ${to.y})`);
         await invoke("send_swipe", { 
           fromX: from.x, fromY: from.y, 
           toX: to.x, toY: to.y 
