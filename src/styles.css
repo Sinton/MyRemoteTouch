@@ -65,13 +65,12 @@ body, html {
 /* App Layout */
 .app-container {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  padding: 20px;
+  width: 100%;
+  padding: 10px; /* 极小边距，确保紧凑 */
   box-sizing: border-box;
-  gap: 24px;
 }
 
 /* Glassmorphism Classes */
@@ -91,66 +90,68 @@ body, html {
   flex-direction: column;
   height: 85vh; /* Slightly smaller to fit nicely */
   aspect-ratio: 1170 / 2532; /* Exact iPhone 12 Pro ratio */
-  background: #0f0f13; /* Inner screen background */
-  border-radius: 46px; /* Inner screen radius */
-  /* Apple's flat edge design:
-     inner black bezel, metallic frame border, and drop shadow */
+  background: #1c1c1e; /* Device frame color */
+  border-radius: 48px; /* 稍微缩小圆角 */
+  padding: 10px; /* 模拟外边框厚度 */
+  box-sizing: border-box;
+  /* 模拟平直金属边框的阴影与高光 */
   box-shadow: 
-    inset 0 0 0 6px #000, /* inner screen bezel */
-    0 0 0 8px #1c1c1e, /* actual device bezel */
-    0 0 0 10px #4d4d50, /* flat edge metallic band */
-    0 25px 50px rgba(0,0,0,0.5); /* shadow */
-  margin: 0 auto;
+    0 0 0 2px #3a3a3c, /* 金属框边缘高光 */
+    0 10px 40px rgba(0,0,0,0.6);
   z-index: 10;
 }
 
-/* The Notch */
+/* The Notch (iPhone 12 narrower style) */
 .notch {
   position: absolute;
-  top: 5px; /* sit just at the inner bezel */
+  top: 10px; /* 稍微下移，避开外框圆角 */
   left: 50%;
   transform: translateX(-50%);
-  width: 45%; /* iPhone 12 notch covers just under 50% */
-  height: 32px;
-  background: #000;
-  border-radius: 0 0 20px 20px;
-  z-index: 20;
+  width: 160px; /* iPhone 12 刘海更窄 */
+  height: 30px;
+  background: #1c1c1e; /* 统一为边框色 */
+  border-radius: 0 0 18px 18px;
+  z-index: 30;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Smooth notch corners trick */
+/* 连续性曲线补偿：刘海与顶部的平滑过渡 */
 .notch::before, .notch::after {
   content: '';
   position: absolute;
   top: 0;
-  width: 10px;
-  height: 10px;
+  width: 4px; 
+  height: 4px;
+  background: #1c1c1e; /* 统一为边框色 */
 }
 .notch::before {
-  left: -10px;
-  background: radial-gradient(circle at bottom left, transparent 0, transparent 75%, #000 75%, #000 100%);
+  left: -4px;
+  mask: radial-gradient(circle at 0% 100%, transparent 4px, #1c1c1e 4px);
+  -webkit-mask: radial-gradient(circle at 0% 100%, transparent 4px, #1c1c1e 4px);
 }
 .notch::after {
-  right: -10px;
-  background: radial-gradient(circle at bottom right, transparent 0, transparent 75%, #000 75%, #000 100%);
+  right: -4px;
+  mask: radial-gradient(circle at 100% 100%, transparent 4px, #1c1c1e 4px);
+  -webkit-mask: radial-gradient(circle at 100% 100%, transparent 4px, #1c1c1e 4px);
 }
 
 .notch .speaker {
-  width: 44px;
-  height: 6px;
-  background: #1c1c1e;
-  border-radius: 4px;
+  width: 40px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  margin-top: -6px; /* 听筒靠上 */
 }
 
 .notch .camera {
-  width: 12px;
-  height: 12px;
-  background: #111;
+  width: 10px;
+  height: 10px;
+  background: #050505;
   border-radius: 50%;
-  box-shadow: inset 0 0 2px rgba(255,255,255,0.2), 0 0 2px rgba(0,0,0,0.8);
+  box-shadow: inset 0 0 3px rgba(255,255,255,0.1);
   position: relative;
 }
 
@@ -169,30 +170,38 @@ body, html {
 }
 
 /* Hardware Buttons (iPhone 12 style) */
-.volume-up, .volume-down, .power-button {
+.mute-switch, .volume-up, .volume-down, .power-button {
   position: absolute;
-  background: #4d4d50;
+  background: #3a3a3c; /* 匹配边框金属色 */
   border-radius: 2px;
-  width: 3px;
+  width: 2px; /* 更纤细的按键 */
   z-index: 5;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+.mute-switch {
+  top: 12%;
+  left: -4px; /* 紧贴边框，不再大幅度凸出 */
+  height: 25px;
+  width: 2px;
 }
 
 .volume-up {
-  top: 15%;
-  left: -12px;
-  height: 45px;
+  top: 18%;
+  left: -4px;
+  height: 50px;
 }
 
 .volume-down {
-  top: 22%;
-  left: -12px;
-  height: 45px;
+  top: 25%;
+  left: -4px;
+  height: 50px;
 }
 
 .power-button {
-  top: 18%;
-  right: -12px;
-  height: 60px;
+  top: 20%;
+  right: -4px;
+  height: 80px;
 }
 
 .status-bar {
@@ -246,23 +255,23 @@ body, html {
 }
 
 #screen-container {
-  flex: 1;
-  position: relative;
-  border-radius: 0 0 40px 40px; /* match inner bezel */
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 38px; /* 紧贴外框内沿，对应 48-10 */
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.8);
+  background: #000;
   cursor: crosshair;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Remove border to make it seamless with the inner bezel */
-  margin: 0 6px 6px 6px; 
+  z-index: 5;
 }
 
 #screen-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: fill; /* 强制铺满，由于容器比例和设备比例一致，不会变形 */
+  display: block;
   transition: opacity 0.3s;
 }
 
@@ -461,63 +470,35 @@ input[type="range"] {
   opacity: 0.9;
 }
 
-/* Simulator Layout & Stable Positioning */
+/* 改为流式响应布局：工具条不再是偏移，而是整体的一部分 */
 .simulator-layout {
-  position: relative;
   display: flex;
+  gap: 15px; /* 进一步缩小间距 */
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  padding: 40px;
-  box-sizing: border-box;
+  padding: 0; /* 彻底移除内边距 */
+  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
 
-.phone-wrapper {
-  position: relative;
-  z-index: 10;
-  display: inline-flex;
+/* 根据位置动态改变排列方向 */
+.pos-top { flex-direction: column-reverse; }
+.pos-bottom { flex-direction: column; }
+.pos-left { flex-direction: row-reverse; }
+.pos-right { flex-direction: row; }
+
+.glass-toolbar {
+  position: relative; /* 取消绝对定位 */
+  z-index: 100;
+  flex-shrink: 0;
 }
 
-/* Dynamic height to prevent overflow when toolbar is top/bottom */
+/* 适配不同方向的尺寸 */
 .pos-top .phone-container, .pos-bottom .phone-container {
-  height: 72vh; 
+  height: min(92vh, 760px);
 }
 
 .pos-left .phone-container, .pos-right .phone-container {
-  height: 82vh;
-}
-
-.glass-toolbar {
-  position: absolute;
-  z-index: 100;
-  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-  white-space: nowrap;
-}
-
-/* Spacing relative to phone surface */
-.pos-bottom .glass-toolbar {
-  bottom: -20px;
-  left: 50%;
-  transform: translate(-50%, 100%);
-}
-
-.pos-top .glass-toolbar {
-  top: -20px;
-  left: 50%;
-  transform: translate(-50%, -100%);
-}
-
-.pos-left .glass-toolbar {
-  left: -20px;
-  top: 50%;
-  transform: translate(-100%, -50%);
-}
-
-.pos-right .glass-toolbar {
-  right: -20px;
-  top: 50%;
-  transform: translate(100%, -50%);
+  height: min(95vh, 800px);
 }
 
 /* Toolbar Orientation Styles */
@@ -553,4 +534,27 @@ input[type="range"] {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+.tap-ripple {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1000;
+  animation: tap-ping 0.3s ease-out forwards;
+}
+
+@keyframes tap-ping {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
 }

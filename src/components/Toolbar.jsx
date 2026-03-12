@@ -1,6 +1,16 @@
 import React from 'react';
 
-const Toolbar = ({ onSettingsClick, onDragStart, position, isDragging }) => {
+const Toolbar = ({ 
+  onSettingsClick, 
+  onDragStart, 
+  position, 
+  isDragging, 
+  onHomeClick,
+  onMuteClick,
+  onVolumeUpClick,
+  onVolumeDownClick,
+  onLockClick
+}) => {
   const isVertical = position === 'left' || position === 'right';
 
   return (
@@ -8,19 +18,26 @@ const Toolbar = ({ onSettingsClick, onDragStart, position, isDragging }) => {
       <div className="toolbar-drag-handle" onMouseDown={onDragStart}></div>
       
       <div className="toolbar-buttons">
-        <button className="glass-btn" title="Home">
+        <button className="glass-btn" title="Home" onClick={onHomeClick}>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
         </button>
         
-        <button className="glass-btn" title="Lock">
+        <button className="glass-btn" title="Lock" onClick={onLockClick}>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         </button>
 
-        <button className="glass-btn" title="Volume Up">
+        <button className="glass-btn" title="Mute" onClick={onMuteClick}>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+          </svg>
+        </button>
+
+        <button className="glass-btn" title="Volume Up" onClick={onVolumeUpClick}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
         </button>
 
-        <button className="glass-btn" title="Volume Down">
+        <button className="glass-btn" title="Volume Down" onClick={onVolumeDownClick}>
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
         </button>
         

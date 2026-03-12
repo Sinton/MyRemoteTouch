@@ -3,6 +3,8 @@ import Toolbar from './components/Toolbar';
 import PhoneScreen from './components/PhoneScreen';
 import Settings from './components/Settings';
 
+const invoke = window.__TAURI__?.core?.invoke || (() => Promise.resolve());
+
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [toolbarPos, setToolbarPos] = useState('bottom'); // top, bottom, left, right
@@ -53,6 +55,41 @@ function App() {
     };
   }, [isDragging]);
 
+  const pressHome = async () => {
+    if (!window.__TAURI__) return;
+    try {
+      await invoke("press_home_button");
+    } catch (err) {}
+  };
+
+  const pressVolumeUp = async () => {
+    if (!window.__TAURI__) return;
+    try {
+      await invoke("press_volume_up");
+    } catch (err) {}
+  };
+
+  const pressVolumeDown = async () => {
+    if (!window.__TAURI__) return;
+    try {
+      await invoke("press_volume_down");
+    } catch (err) {}
+  };
+
+  const pressMute = async () => {
+    if (!window.__TAURI__) return;
+    try {
+      await invoke("press_mute_button");
+    } catch (err) {}
+  };
+
+  const pressLock = async () => {
+    if (!window.__TAURI__) return;
+    try {
+      await invoke("toggle_lock");
+    } catch (err) {}
+  };
+
   return (
     <>
       <div className="background">
@@ -63,15 +100,19 @@ function App() {
       
       <div className="app-container" style={{ cursor: isDragging ? 'grabbing' : 'default' }}>
         <div className={`simulator-layout pos-${toolbarPos}`}>
+          <Toolbar 
+            onSettingsClick={() => setShowSettings(!showSettings)} 
+            onDragStart={handleDragStart} 
+            position={toolbarPos} 
+            isDragging={isDragging}
+            onHomeClick={pressHome}
+            onVolumeUpClick={pressVolumeUp}
+            onVolumeDownClick={pressVolumeDown}
+            onMuteClick={pressMute}
+            onLockClick={pressLock}
+          />
           <div className="phone-wrapper" ref={phoneRef}>
-            <PhoneScreen />
-            {/* Toolbar must be inside wrapper to snap to phone edges */}
-            <Toolbar 
-              position={toolbarPos}
-              isDragging={isDragging}
-              onDragStart={handleDragStart}
-              onSettingsClick={() => setShowSettings(!showSettings)} 
-            />
+            <PhoneScreen isDragging={isDragging} />
           </div>
         </div>
       </div>
