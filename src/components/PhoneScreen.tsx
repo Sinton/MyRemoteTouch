@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { usePhoneStream } from '../hooks/usePhoneStream';
 import { useTouchController } from '../hooks/useTouchController';
 import { WindowSize } from '../types/global';
-
-const invoke = (window as any).__TAURI__?.core?.invoke || (() => Promise.resolve());
+import { DeviceService } from '../services/deviceService';
+import { useAppStore } from '../store/useAppStore';
 
 /**
  * PhoneScreen Component - Migrated to Tailwind CSS.
@@ -15,6 +15,7 @@ interface PhoneScreenProps {
 const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const [deviceSize, setDeviceSize] = useState<WindowSize>({ width: 390, height: 844 });
+  const { setResolution } = useAppStore();
   
   // Logic: Video Streaming
   const { isConnected } = usePhoneStream(canvasRef, deviceSize);
@@ -34,16 +35,17 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
     const initDeviceInfo = async () => {
       try {
         if (!(window as any).__TAURI__) return;
-        const size = await invoke("get_window_size");
+        const size = await DeviceService.getWindowSize();
         if (size) {
           setDeviceSize({ width: size.width, height: size.height });
+          setResolution(`${size.width}x${size.height}`);
         }
       } catch (err) {
         console.error("Failed to fetch device resolution:", err);
       }
     };
     initDeviceInfo();
-  }, []);
+  }, [setResolution]);
 
   // Keyboard support
   useEffect(() => {
@@ -54,7 +56,7 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
       if (key === "Backspace") key = "\b";
       if (key.length === 1 || key === "\n" || key === "\b") {
         try {
-          await invoke("send_keys", { key });
+          await DeviceService.sendKeys(key);
         } catch (err) {}
       }
     };

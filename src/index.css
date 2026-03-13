@@ -12,7 +12,7 @@
 @layer base {
   html, body, #root {
     @apply h-full w-full overflow-hidden m-0 p-0 select-none;
-    background-color: #0f0f13;
+    background-color: #292929;
     color: var(--text-main);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
@@ -20,17 +20,26 @@
 
 /* Custom Keyframes for the background blobs (Tailwind v4 handles animations well, but we'll define the float aqui) */
 @keyframes blob-movement {
-  0% { transform: translate(-20%, -20%) scale(1) rotate(0deg); opacity: 0.5; }
-  33% { transform: translate(30%, 15%) scale(1.3) rotate(120deg); opacity: 0.8; }
-  66% { transform: translate(-10%, 40%) scale(0.8) rotate(240deg); opacity: 0.6; }
-  100% { transform: translate(-20%, -20%) scale(1) rotate(360deg); opacity: 0.5; }
+  0% { transform: translate(-40%, -40%) scale(1) rotate(0deg) skew(0deg); opacity: 0.4; }
+  25% { transform: translate(60%, 20%) scale(1.8) rotate(90deg) skew(10deg); opacity: 0.9; }
+  50% { transform: translate(-10%, 70%) scale(0.6) rotate(180deg) skew(-5deg); opacity: 0.6; }
+  75% { transform: translate(-70%, -20%) scale(1.4) rotate(270deg) skew(15deg); opacity: 1; }
+  100% { transform: translate(-40%, -40%) scale(1) rotate(360deg) skew(0deg); opacity: 0.4; }
 }
 
 @keyframes blob-movement-alt {
-  0% { transform: translate(20%, 20%) scale(1.1) rotate(360deg); opacity: 0.7; }
-  33% { transform: translate(-30%, -10%) scale(0.9) rotate(240deg); opacity: 0.4; }
-  66% { transform: translate(10%, -30%) scale(1.4) rotate(120deg); opacity: 0.9; }
-  100% { transform: translate(20%, 20%) scale(1.1) rotate(0deg); opacity: 0.7; }
+  0% { transform: translate(40%, 40%) scale(1.3) rotate(360deg) skew(5deg); opacity: 0.8; }
+  33% { transform: translate(-80%, -40%) scale(0.5) rotate(200deg) skew(-10deg); opacity: 0.4; }
+  66% { transform: translate(50%, -80%) scale(2.2) rotate(100deg) skew(20deg); opacity: 0.9; }
+  100% { transform: translate(40%, 40%) scale(1.3) rotate(0deg) skew(5deg); opacity: 0.8; }
+}
+
+@keyframes blob-movement-extra {
+  0% { transform: translate(0%, -60%) scale(1) rotate(0deg); }
+  25% { transform: translate(-70%, 50%) scale(1.6) rotate(-120deg); }
+  50% { transform: translate(80%, 20%) scale(0.4) rotate(-240deg); }
+  75% { transform: translate(-20%, -80%) scale(2.0) rotate(-300deg); }
+  100% { transform: translate(0%, -60%) scale(1) rotate(-360deg); }
 }
 
 @keyframes tap-ping {

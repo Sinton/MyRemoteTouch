@@ -2,8 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Toolbar from './Toolbar';
 import PhoneScreen from './PhoneScreen';
 import Settings from './Settings';
-
-const invoke = (window as any).__TAURI__?.core?.invoke || (() => Promise.resolve());
+import { DeviceService } from '../services/deviceService';
 
 type ToolbarPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -56,30 +55,11 @@ const Phone: React.FC = () => {
     };
   }, [isDragging]);
 
-  const pressHome = async () => {
-    if (!(window as any).__TAURI__) return;
-    try { await invoke("press_home_button"); } catch (err) {}
-  };
-
-  const pressVolumeUp = async () => {
-    if (!(window as any).__TAURI__) return;
-    try { await invoke("press_volume_up"); } catch (err) {}
-  };
-
-  const pressVolumeDown = async () => {
-    if (!(window as any).__TAURI__) return;
-    try { await invoke("press_volume_down"); } catch (err) {}
-  };
-
-  const pressMute = async () => {
-    if (!(window as any).__TAURI__) return;
-    try { await invoke("press_mute_button"); } catch (err) {}
-  };
-
-  const pressLock = async () => {
-    if (!(window as any).__TAURI__) return;
-    try { await invoke("toggle_lock"); } catch (err) {}
-  };
+  const pressHome = () => DeviceService.pressHome();
+  const pressVolumeUp = () => DeviceService.pressVolumeUp();
+  const pressVolumeDown = () => DeviceService.pressVolumeDown();
+  const pressMute = () => DeviceService.pressMute();
+  const pressLock = () => DeviceService.toggleLock();
 
   // Helper for layout orientation classes
   const getLayoutClasses = () => {

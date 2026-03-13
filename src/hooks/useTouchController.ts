@@ -1,7 +1,6 @@
 import React, { useRef, useState, PointerEvent } from 'react';
 import { Point, TouchPoint, WindowSize } from '../types/global';
-
-const invoke = (window as any).__TAURI__?.core?.invoke || (() => Promise.resolve());
+import { DeviceService } from '../services/deviceService';
 
 /**
  * Hook to handle touch inputs, coordinate mapping, and command dispatching.
@@ -129,9 +128,9 @@ export const useTouchController = (
 
     try {
       if (distance < 5 && duration < 300) {
-        await invoke("send_tap", { x: startPoint.x, y: startPoint.y });
+        await DeviceService.sendTap(startPoint.x, startPoint.y);
       } else {
-        await invoke("send_touch_actions", { actions: trajectory });
+        await DeviceService.sendTouchActions(trajectory);
       }
     } catch (err) {
       console.error("Touch action failed:", err);

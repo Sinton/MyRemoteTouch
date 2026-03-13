@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme, BackgroundMode } from '../context/ThemeContext';
+import { useAppStore, BackgroundMode } from '../store/useAppStore';
 
 interface SettingsProps {
   visible: boolean;
@@ -7,7 +7,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resetTheme } = useAppStore();
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
@@ -38,7 +38,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
   };
 
   const handleModeChange = (mode: BackgroundMode) => {
-    setTheme(prev => ({ ...prev, backgroundMode: mode }));
+    setTheme({ backgroundMode: mode });
   };
 
   return (
@@ -139,7 +139,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                             <input
                               type="color"
                               value={(theme as any)[item.id]}
-                              onChange={(e) => setTheme(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              onChange={(e) => setTheme({ [item.id]: e.target.value })}
                               className="absolute inset-x-0 inset-y-0 scale-[3] opacity-0 cursor-pointer"
                             />
                           </div>
@@ -157,7 +157,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                         className="w-12 h-6 rounded-full border-2 border-white/20 group-hover/color:border-white shadow-lg transition-all active:scale-95 cursor-pointer overflow-hidden ring-4 ring-black/20"
                         style={{ backgroundColor: theme.solidColor }}
                       >
-                        <input type="color" value={theme.solidColor} onChange={(e) => setTheme(prev => ({ ...prev, solidColor: e.target.value }))} className="absolute inset-x-0 inset-y-0 scale-[3] opacity-0 cursor-pointer" />
+                        <input type="color" value={theme.solidColor} onChange={(e) => setTheme({ solidColor: e.target.value })} className="absolute inset-x-0 inset-y-0 scale-[3] opacity-0 cursor-pointer" />
                       </div>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                             className="w-12 h-6 rounded-full border-2 border-white/20 group-hover/color:border-white shadow-lg transition-all active:scale-90 cursor-pointer overflow-hidden ring-4 ring-black/20"
                             style={{ backgroundColor: (theme as any)[item.id] }}
                           >
-                            <input type="color" value={(theme as any)[item.id]} onChange={(e) => setTheme(prev => ({ ...prev, [item.id]: e.target.value }))} className="absolute inset-x-0 inset-y-0 scale-[3] opacity-0 cursor-pointer" />
+                            <input type="color" value={(theme as any)[item.id]} onChange={(e) => setTheme({ [item.id]: e.target.value })} className="absolute inset-x-0 inset-y-0 scale-[3] opacity-0 cursor-pointer" />
                           </div>
                         </div>
                       </div>
@@ -240,16 +240,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                     setConfirmReset(true);
                     return;
                   }
-                  setTheme({
-                    backgroundMode: 'liquid',
-                    blob1Color: '#7000FF',
-                    blob2Color: '#0070FF',
-                    blob3Color: '#FF0060',
-                    solidColor: '#0f0f13',
-                    gradientStart: '#1a1a25',
-                    gradientEnd: '#050505',
-                    blurAmount: 60,
-                  });
+                  resetTheme();
                   setConfirmReset(false);
                 }}
                 className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 cursor-pointer border truncate
