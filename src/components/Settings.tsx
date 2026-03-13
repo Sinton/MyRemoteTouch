@@ -43,7 +43,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
 
   return (
     <div
-      className={`fixed top-0 right-[-320px] w-[300px] h-screen bg-[rgba(30,30,35,0.7)] backdrop-blur-[40px] saturate-[180%] border-l border-[rgba(255,255,255,0.1)] shadow-[-10px_0_30px_rgba(0,0,0,0.3)] z-[1000] transition-transform duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] box-border text-white flex flex-col
+      className={`fixed top-0 right-[-320px] w-[300px] h-screen bg-[rgba(30,30,35,0.7)] backdrop-blur-[40px] saturate-[180%] border-l border-[rgba(255,255,255,0.1)] shadow-[-10px_0_30px_rgba(0,0,0,0.3)] z-[1000] transition-transform duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] box-border text-white flex flex-col overflow-x-hidden
         ${visible ? 'translate-x-[-320px]' : ''}`}
     >
       {/* Custom Toast Alert - Stay fixed at top of drawer */}
@@ -57,7 +57,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
       )}
 
       {/* Internal Scrollable Wrapper */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar-wrapper">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6 custom-scrollbar-wrapper">
         {/* Header */}
         <div className="flex justify-between items-center mb-10 px-1">
           <div className="flex items-center gap-3">
@@ -74,10 +74,10 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
 
         <div className="drawer-content space-y-10 pb-10">
           {/* Section: Output Info (Card Style) */}
+          <div className="flex items-center gap-2 text-[14px] text-white/40 mb-3 font-black uppercase tracking-[0.1em] px-1">
+            <svg className="w-3.5 h-3.5 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" /></svg> 画面输出
+          </div>
           <section className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-6 shadow-2xl backdrop-blur-3xl">
-            <label className="flex items-center gap-2 text-[14px] text-white/40 mb-6 font-black uppercase tracking-[0.1em] px-1">
-              <svg className="w-3.5 h-3.5 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z" /></svg> 画面输出
-            </label>
 
             <div className="space-y-6">
               <div className="flex items-center justify-between group">
@@ -90,17 +90,17 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
               <div className="flex items-center justify-between group">
                 <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">画面比例</span>
                 <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.05] text-[11px] font-bold text-white/80 select-none">
-                  Original
+                  390x844
                 </div>
               </div>
             </div>
           </section>
 
           {/* Section: Personalization (Card Style) */}
+          <div className="flex items-center gap-2 text-[14px] text-white/40 mb-3 font-black uppercase tracking-[0.1em] px-1">
+            <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" /></svg> 个性化氛围
+          </div>
           <section className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-6 shadow-2xl backdrop-blur-3xl">
-            <label className="flex items-center gap-2 text-[14px] text-white/40 mb-6 font-black uppercase tracking-[0.1em] px-1">
-              <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" /></svg> 个性化氛围
-            </label>
 
             {/* Custom Mode Switcher */}
             <div className="flex bg-black/40 p-1 rounded-xl mb-8 border border-white/[0.05] relative overflow-hidden">
@@ -188,10 +188,10 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
           </section>
 
           {/* Section: About (Card Style) */}
+          <div className="flex items-center gap-2 text-[14px] text-white/40 mb-3 font-black uppercase tracking-[0.1em] px-1">
+            <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg> 关于产品
+          </div>
           <section className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-6 shadow-2xl backdrop-blur-3xl">
-            <label className="flex items-center gap-2 text-[14px] text-white/40 mb-6 font-black uppercase tracking-[0.1em] px-1">
-              <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg> 关于产品
-            </label>
 
             <div className="space-y-6">
               <div className="flex items-center justify-between group">

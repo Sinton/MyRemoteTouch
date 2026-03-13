@@ -10,7 +10,7 @@
 }
 
 @layer base {
-  html, body {
+  html, body, #root {
     @apply h-full w-full overflow-hidden m-0 p-0 select-none;
     background-color: #0f0f13;
     color: var(--text-main);
@@ -20,17 +20,17 @@
 
 /* Custom Keyframes for the background blobs (Tailwind v4 handles animations well, but we'll define the float aqui) */
 @keyframes blob-movement {
-  0% { transform: translate(-10%, -10%) scale(1) rotate(0deg); opacity: 0.4; filter: blur(80px); }
-  33% { transform: translate(15%, 10%) scale(1.3) rotate(120deg); opacity: 0.7; filter: blur(60px); }
-  66% { transform: translate(-5%, 20%) scale(0.8) rotate(240deg); opacity: 0.5; filter: blur(100px); }
-  100% { transform: translate(-10%, -10%) scale(1) rotate(360deg); opacity: 0.4; filter: blur(80px); }
+  0% { transform: translate(-20%, -20%) scale(1) rotate(0deg); opacity: 0.5; }
+  33% { transform: translate(30%, 15%) scale(1.3) rotate(120deg); opacity: 0.8; }
+  66% { transform: translate(-10%, 40%) scale(0.8) rotate(240deg); opacity: 0.6; }
+  100% { transform: translate(-20%, -20%) scale(1) rotate(360deg); opacity: 0.5; }
 }
 
 @keyframes blob-movement-alt {
-  0% { transform: translate(10%, 10%) scale(1.1) rotate(360deg); opacity: 0.6; filter: blur(70px); }
-  33% { transform: translate(-15%, -5%) scale(0.9) rotate(240deg); opacity: 0.3; filter: blur(110px); }
-  66% { transform: translate(5%, -15%) scale(1.4) rotate(120deg); opacity: 0.8; filter: blur(50px); }
-  100% { transform: translate(10%, 10%) scale(1.1) rotate(0deg); opacity: 0.6; filter: blur(70px); }
+  0% { transform: translate(20%, 20%) scale(1.1) rotate(360deg); opacity: 0.7; }
+  33% { transform: translate(-30%, -10%) scale(0.9) rotate(240deg); opacity: 0.4; }
+  66% { transform: translate(10%, -30%) scale(1.4) rotate(120deg); opacity: 0.9; }
+  100% { transform: translate(20%, 20%) scale(1.1) rotate(0deg); opacity: 0.7; }
 }
 
 @keyframes tap-ping {

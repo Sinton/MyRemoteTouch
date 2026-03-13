@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "my-remote-touch",
-  "version": "0.1.0",
-  "identifier": "com.yan.my-remote-touch",
+  "productName": "MyRemoteTouch",
+  "version": "0.0.1",
+  "identifier": "com.l0101.myremotetouch",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -13,12 +13,13 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "my-remote-touch",
-        "width": 480,
-        "height": 870,
-        "minWidth": 480,
-        "minHeight": 870,
-        "resizable": true
+        "title": "MyRemoteTouch",
+        "width": 540,
+        "height": 980,
+        "minWidth": 540,
+        "minHeight": 980,
+        "resizable": true,
+        "visible": true
       }
     ],
     "security": {

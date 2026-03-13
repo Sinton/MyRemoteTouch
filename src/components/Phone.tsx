@@ -85,17 +85,17 @@ const Phone: React.FC = () => {
   const getLayoutClasses = () => {
     const base = "flex gap-[15px] items-center justify-center p-0 transition-all duration-400 ease-[cubic-bezier(0.18,0.89,0.32,1.28)]";
     const posDirs: Record<ToolbarPosition, string> = {
-      top: "flex-col-reverse",
-      bottom: "flex-col",
-      left: "flex-row-reverse",
-      right: "flex-row"
+      top: "flex-col",
+      bottom: "flex-col-reverse",
+      left: "flex-row",
+      right: "flex-row-reverse"
     };
     return `${base} ${posDirs[toolbarPos]}`;
   };
 
   return (
     <div 
-      className="flex justify-center items-center h-full w-full p-[10px] box-border" 
+      className="flex justify-center items-center h-screen w-screen p-[10px] box-border" 
       style={{ cursor: isDragging ? 'grabbing' : 'default' }}
     >
       <div className={getLayoutClasses()}>
@@ -111,7 +111,7 @@ const Phone: React.FC = () => {
           onLockClick={pressLock}
         />
         <div className="relative" ref={phoneRef}>
-          <PhoneScreen />
+          <PhoneScreen position={toolbarPos} />
         </div>
       </div>
       

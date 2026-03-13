@@ -8,7 +8,11 @@ const invoke = (window as any).__TAURI__?.core?.invoke || (() => Promise.resolve
 /**
  * PhoneScreen Component - Migrated to Tailwind CSS.
  */
-const PhoneScreen: React.FC = () => {
+interface PhoneScreenProps {
+  position?: 'top' | 'bottom' | 'left' | 'right';
+}
+
+const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const [deviceSize, setDeviceSize] = useState<WindowSize>({ width: 390, height: 844 });
   
@@ -59,7 +63,8 @@ const PhoneScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative flex flex-col h-[85vh] aspect-[1170/2532] bg-[#1c1c1e] rounded-[48px] p-[10px] box-border shadow-[0_0_0_2px_#3a3a3c,0_10px_40px_rgba(0,0,0,0.6)] z-10">
+    <div className={`relative flex flex-col aspect-[1170/2532] bg-[#1c1c1e] rounded-[48px] p-[10px] box-border shadow-[0_0_0_2px_#3a3a3c,0_10px_40px_rgba(0,0,0,0.6)] z-10 transition-all duration-400
+      ${(position === 'left' || position === 'right') ? 'h-[97vh]' : 'h-[91vh]'}`}>
       {/* Hardware Buttons Decoration */}
       <div className="absolute top-[12%] -left-[4px] h-[25px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
       <div className="absolute top-[18%] -left-[4px] h-[50px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
