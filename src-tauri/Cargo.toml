@@ -13,5 +13,12 @@ tauri = { version = "2.0.0-rc", features = [] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full", "rt"] }
 tauri-plugin-shell = "2.0.0-rc"
+idevice = { version = "0.1.53", features = ["usbmuxd"] }
+futures-util = "0.3.32"
+plist = "1.8.0"
+byteorder = "1.5.0"
+lazy_static = "1.5.0"
+
+

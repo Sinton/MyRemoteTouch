@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::OnceLock;
 use std::sync::Mutex;
-use std::time::Instant;
+
+mod ios_proxy;
 
 static SESSION_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
@@ -237,6 +238,11 @@ async fn press_mute_button() -> Result<(), String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            // 初始化 iOS USB 端口映射
+            ios_proxy::init_proxies(app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_window_size,
             send_tap,
