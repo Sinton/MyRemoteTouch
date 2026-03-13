@@ -1,6 +1,11 @@
 import React from 'react';
 
-const Settings = ({ visible, onClose }) => {
+interface SettingsProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
   return (
     <div className={`settings-drawer ${visible ? 'open' : ''}`}>
       <div className="drawer-header">
@@ -31,7 +36,7 @@ const Settings = ({ visible, onClose }) => {
             <div className="toggle-info">当前连接：USB (WDA)</div>
         </div>
 
-        <div className="divider"></div>
+        <div className="divider" style={{ margin: '20px 0' }}></div>
 
         <button className="primary-btn">检查更新</button>
       </div>

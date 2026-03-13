@@ -1,6 +1,20 @@
 import React from 'react';
 
-const Toolbar = ({ 
+type ToolbarPosition = 'top' | 'bottom' | 'left' | 'right';
+
+interface ToolbarProps {
+  onSettingsClick: () => void;
+  onDragStart: (e: React.MouseEvent | React.TouchEvent) => void;
+  position: ToolbarPosition;
+  isDragging: boolean;
+  onHomeClick: () => void;
+  onMuteClick: () => void;
+  onVolumeUpClick: () => void;
+  onVolumeDownClick: () => void;
+  onLockClick: () => void;
+}
+
+const Toolbar: React.FC<ToolbarProps> = ({ 
   onSettingsClick, 
   onDragStart, 
   position, 
