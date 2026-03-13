@@ -87,7 +87,7 @@ const PhoneScreen: React.FC = () => {
         
         {/* Custom iOS Style Assistive Cursor */}
         <div 
-          className="absolute w-[24px] h-[24px] bg-[rgba(255,255,255,0.3)] border-[1.5px] border-[rgba(255,255,255,0.5)] shadow-[0_0_10px_rgba(0,0,0,0.3)] rounded-full pointer-events-none z-[2000] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-[transform,opacity] duration-[0.05s,0.2s] ease-[linear,ease]
+          className="absolute w-[24px] h-[24px] bg-[rgba(255,255,255,0.3)] border-[1.5px] border-[rgba(255,255,255,0.5)] shadow-[0_0_10px_rgba(0,0,0,0.3)] rounded-full pointer-events-none z-[2000] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center
                      after:content-[''] after:w-[6px] after:h-[6px] after:bg-[rgba(255,255,255,0.8)] after:rounded-full" 
           style={{ left: mousePos.x, top: mousePos.y, opacity: isConnected ? 1 : 0 }} 
         />
@@ -112,8 +112,12 @@ const PhoneScreen: React.FC = () => {
 
         {/* Visual feedback for taps */}
         {tapMarker && (
-          <div className="absolute w-[40px] h-[40px] -translate-x-1/2 -translate-y-1/2 bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] rounded-full pointer-events-none z-[1000] animate-[tap-ping_0.3s_ease-out_forwards]" 
-               style={{ left: tapMarker.x, top: tapMarker.y }} />
+          <div className="absolute w-[40px] h-[40px] bg-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.6)] rounded-full pointer-events-none z-[1000] animate-[tap-ping_0.3s_ease-out_forwards]" 
+               style={{ 
+                 left: tapMarker.x, 
+                 top: tapMarker.y,
+                 transform: 'translate(-50%, -50%)' // Force centering regardless of keyframes
+               }} />
         )}
       </div>
     </div>

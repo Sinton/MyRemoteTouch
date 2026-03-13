@@ -69,19 +69,37 @@ export const useTouchController = (
     isDraggingRef.current = true;
     trajectoryRef.current = [];
     
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Scale mapping between rendered size and actual CSS pixels
+    const scaleX = canvas.offsetWidth / rect.width;
+    const scaleY = canvas.offsetHeight / rect.height;
+    
+    const localX = (e.clientX - rect.left) * scaleX;
+    const localY = (e.clientY - rect.top) * scaleY;
+    
     const pos = getCoord(e.clientX, e.clientY);
     mouseDownPos.current = { ...pos, time: Date.now() };
     
     samplePointer(e.clientX, e.clientY);
     
-    const rect = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
-    setTapMarker({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setTapMarker({ x: localX, y: localY });
+    
     setTimeout(() => setTapMarker(null), 300);
   };
 
   const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
-    const rect = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
-    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    
+    const scaleX = canvas.offsetWidth / rect.width;
+    const scaleY = canvas.offsetHeight / rect.height;
+
+    const localX = (e.clientX - rect.left) * scaleX;
+    const localY = (e.clientY - rect.top) * scaleY;
+
+    setMousePos({ x: localX, y: localY });
 
     if (!isDraggingRef.current) return;
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
