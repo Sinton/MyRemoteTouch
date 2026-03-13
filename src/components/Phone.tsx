@@ -34,7 +34,6 @@ const Phone: React.FC = () => {
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
 
-      // Magnetic snapping logic
       if (absX > absY * 1.2) {
         setToolbarPos(dx > 0 ? 'right' : 'left');
       } else if (absY > absX * 1.2) {
@@ -57,7 +56,6 @@ const Phone: React.FC = () => {
     };
   }, [isDragging]);
 
-  // Command Handlers
   const pressHome = async () => {
     if (!(window as any).__TAURI__) return;
     try { await invoke("press_home_button"); } catch (err) {}
@@ -83,9 +81,24 @@ const Phone: React.FC = () => {
     try { await invoke("toggle_lock"); } catch (err) {}
   };
 
+  // Helper for layout orientation classes
+  const getLayoutClasses = () => {
+    const base = "flex gap-[15px] items-center justify-center p-0 transition-all duration-400 ease-[cubic-bezier(0.18,0.89,0.32,1.28)]";
+    const posDirs: Record<ToolbarPosition, string> = {
+      top: "flex-col-reverse",
+      bottom: "flex-col",
+      left: "flex-row-reverse",
+      right: "flex-row"
+    };
+    return `${base} ${posDirs[toolbarPos]}`;
+  };
+
   return (
-    <div className="app-container" style={{ cursor: isDragging ? 'grabbing' : 'default' }}>
-      <div className={`simulator-layout pos-${toolbarPos}`}>
+    <div 
+      className="flex justify-center items-center h-full w-full p-[10px] box-border" 
+      style={{ cursor: isDragging ? 'grabbing' : 'default' }}
+    >
+      <div className={getLayoutClasses()}>
         <Toolbar 
           onSettingsClick={() => setShowSettings(!showSettings)} 
           onDragStart={handleDragStart} 
@@ -97,7 +110,7 @@ const Phone: React.FC = () => {
           onMuteClick={pressMute}
           onLockClick={pressLock}
         />
-        <div className="phone-wrapper" ref={phoneRef}>
+        <div className="relative" ref={phoneRef}>
           <PhoneScreen />
         </div>
       </div>

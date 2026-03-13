@@ -1,4 +1,4 @@
-import { useRef, useState, PointerEvent } from 'react';
+import React, { useRef, useState, PointerEvent } from 'react';
 import { Point, TouchPoint, WindowSize } from '../types/global';
 
 const invoke = (window as any).__TAURI__?.core?.invoke || (() => Promise.resolve());

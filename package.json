@@ -11,8 +11,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.2.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.1.0",

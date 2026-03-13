@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --glass-bg: rgba(30, 30, 35, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --accent: #0A84FF;
+  --text-main: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.6);
+}
+
+@layer base {
+  html, body {
+    @apply h-full w-full overflow-hidden m-0 p-0 select-none;
+    background-color: #0f0f13;
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+}
+
+/* Custom Keyframes for the background blobs (Tailwind v4 handles animations well, but we'll define the float aqui) */
+@keyframes float-blob {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(60px, 80px) scale(1.2) rotate(15deg); }
+}
+
+@keyframes tap-ping {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer utilities {
+  .animate-float-blob {
+    animation: float-blob 20s infinite ease-in-out alternate;
+  }
+  
+  .glass-blur {
+    @apply backdrop-blur-[30px] saturate-[150%];
+  }
+}
