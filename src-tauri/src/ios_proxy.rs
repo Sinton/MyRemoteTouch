@@ -53,6 +53,34 @@ async fn connect_device_port(device_id: u32, port: u16) -> Result<DeviceStream, 
     Ok(DeviceStream { inner: socket })
 }
 
+use tokio::sync::Mutex as TokioMutex;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref CACHED_DEVICE_ID: TokioMutex<Option<u32>> = TokioMutex::new(None);
+}
+
+async fn get_device_id() -> Option<u32> {
+    let mut cache = CACHED_DEVICE_ID.lock().await;
+    if let Some(id) = *cache {
+        return Some(id);
+    }
+    
+    match UsbmuxdConnection::default().await {
+        Ok(mut mux) => {
+            if let Ok(devices) = mux.get_devices().await {
+                if let Some(dev) = devices.first() {
+                    let id = dev.device_id;
+                    *cache = Some(id);
+                    return Some(id);
+                }
+            }
+        }
+        Err(_) => {}
+    }
+    None
+}
+
 /// 启动本地 TCP 监听器，并将所有传入连接桥接到 iOS 设备端口
 pub async fn start_proxy(local_port: u16, device_port: u16) {
     let addr = format!("127.0.0.1:{}", local_port);
@@ -68,44 +96,20 @@ pub async fn start_proxy(local_port: u16, device_port: u16) {
 
     loop {
         if let Ok((mut client_stream, peer_addr)) = listener.accept().await {
-            let device_port = device_port;
             tokio::spawn(async move {
-                // 1. 获取当前在线设备
-                let device_id = match UsbmuxdConnection::default().await {
-                    Ok(mut mux) => {
-                        match mux.get_devices().await {
-                            Ok(devices) => {
-                                if let Some(dev) = devices.first() {
-                                    dev.device_id
-                                } else {
-                                    println!(">>> [iOS Proxy] 无在线设备，拒绝来自 {} 的连接", peer_addr);
-                                    return;
-                                }
-                            }
-                            Err(e) => {
-                                println!(">>> [iOS Proxy] 查询设备列表失败: {:?}", e);
-                                return;
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        println!(">>> [iOS Proxy] 连接 usbmuxd 失败: {:?}", e);
+                // 使用缓存的设备 ID 减少 usbmuxd 握手次数
+                let device_id = match get_device_id().await {
+                    Some(id) => id,
+                    None => {
+                        println!(">>> [iOS Proxy] 未发现在线设备，拒绝来自 {} 的连接", peer_addr);
                         return;
                     }
                 };
 
-                // 2. 通过 idevice 库的官方 API 建立到设备端口的隧道
+                // 2. 通过 idevice 库建立到设备端口的隧道
                 match connect_device_port(device_id, device_port).await {
                     Ok(mut device_stream) => {
-                        // 3. 双向桥接：本地 TCP <=> iOS 设备端口
-                        match io::copy_bidirectional(&mut client_stream, &mut device_stream).await {
-                            Ok((tx, rx)) => {
-                                println!(">>> [iOS Proxy] 隧道关闭 (Port {}): 发送 {} 字节, 接收 {} 字节", device_port, tx, rx);
-                            }
-                            Err(_) => {
-                                // 连接正常关闭不需要打印
-                            }
-                        }
+                        let _ = io::copy_bidirectional(&mut client_stream, &mut device_stream).await;
                     }
                     Err(e) => {
                         println!(">>> [iOS Proxy] 连接设备端口 {} 失败: {}", device_port, e);
