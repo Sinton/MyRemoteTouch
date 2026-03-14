@@ -27,17 +27,37 @@ self.onmessage = (e: MessageEvent) => {
       self.postMessage({ type: 'STATUS', payload: { connected: true } });
     };
 
-    socket.onmessage = async (event: MessageEvent) => {
-      if (!ctx || !canvas) return;
+    let latestFrameData: ArrayBuffer | null = null;
+    let isRendering = false;
+
+    const renderLatestFrame = async () => {
+      if (!ctx || !canvas || !latestFrameData) return;
+      isRendering = true;
+      
       try {
-        const blob = new Blob([event.data], { type: 'image/jpeg' });
+        const data = latestFrameData;
+        latestFrameData = null; // Clear so we know if a new frame arrives
+
+        const blob = new Blob([data], { type: 'image/jpeg' });
         const bitmap = await createImageBitmap(blob);
         
-        // Parallel rendering via OffscreenCanvas
         ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         bitmap.close();
       } catch (err) {
-        // Drop malformed frames
+        // Drop malformed frames implicitly
+      } finally {
+        isRendering = false;
+        // If a new frame arrived during the render, fire again immediately
+        if (latestFrameData) {
+          renderLatestFrame();
+        }
+      }
+    };
+
+    socket.onmessage = (event: MessageEvent) => {
+      latestFrameData = event.data;
+      if (!isRendering) {
+        renderLatestFrame();
       }
     };
 

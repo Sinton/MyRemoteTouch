@@ -26,9 +26,9 @@ pub struct WdaClient {
 impl WdaClient {
     pub fn new(base_url: &str) -> Self {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(3))
+            .timeout(std::time::Duration::from_secs(12))
             .tcp_nodelay(true)
-            .pool_idle_timeout(std::time::Duration::from_secs(60))
+            .pool_idle_timeout(std::time::Duration::from_secs(120))
             .build()
             .expect("Failed to build reqwest client");
 
@@ -109,13 +109,25 @@ impl WdaClient {
     }
 
     async fn apply_settings(&self, sid: &str) -> AppResult<()> {
+        self.update_settings_for_session(sid, 100, 60).await
+    }
+
+    pub async fn update_settings(&self, quality: u8, framerate: u8) -> AppResult<()> {
+        let sid = self.get_session_id().await;
+        self.update_settings_for_session(&sid, quality, framerate).await
+    }
+
+    async fn update_settings_for_session(&self, sid: &str, quality: u8, framerate: u8) -> AppResult<()> {
         let settings = json!({
             "settings": {
                 "waitForQuiescence": false,
                 "waitForIdle": false,
                 "animationCoolOffTimeout": 0,
                 "shouldUseCompactResponses": true,
-                "elementResponseAttributes": "type,label"
+                "elementResponseAttributes": "type,label",
+                "mjpegServerScreenshotQuality": quality,
+                "mjpegServerFramerate": framerate,
+                "screenshotQuality": 1
             }
         });
         self.client

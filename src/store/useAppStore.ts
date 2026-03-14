@@ -25,6 +25,12 @@ interface AppState {
   setIsConnecting: (status: boolean) => void;
   lastConnectedResolution: string;
   setResolution: (res: string) => void;
+
+  // Video Settings
+  videoQuality: number;
+  setVideoQuality: (q: number) => void;
+  videoFramerate: number;
+  setVideoFramerate: (f: number) => void;
 }
 
 const defaultTheme: AppTheme = {
@@ -56,10 +62,20 @@ export const useAppStore = create<AppState>()(
       setIsConnecting: (status) => set({ isConnecting: status }),
       lastConnectedResolution: '390x844',
       setResolution: (res) => set({ lastConnectedResolution: res }),
+
+      // Video Settings
+      videoQuality: 100, // 0-100
+      setVideoQuality: (q) => set({ videoQuality: q }),
+      videoFramerate: 60, // 10-60
+      setVideoFramerate: (f) => set({ videoFramerate: f }),
     }),
     {
       name: 'my-remote-touch-storage',
-      partialize: (state) => ({ theme: state.theme }), // Only persist theme for now
+      partialize: (state) => ({ 
+        theme: state.theme,
+        videoQuality: state.videoQuality,
+        videoFramerate: state.videoFramerate
+      }), 
     }
   )
 );

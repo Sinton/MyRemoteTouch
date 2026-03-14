@@ -33,14 +33,18 @@ fn main() {
 
             let heartbeat_token = token.clone();
             tauri::async_runtime::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(20));
                 loop {
                     tokio::select! {
                         _ = heartbeat_token.cancelled() => break,
                         _ = interval.tick() => {
                             let wda_state = handle.state::<WdaClient>();
+                            // 如果健康检查失败，再给一次机会，防止是因为处理手势导致的瞬时阻塞
                             if !wda_state.check_health().await {
-                                eprintln!(">>> [Heartbeat] WDA 连接异常");
+                                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                                if !wda_state.check_health().await {
+                                    eprintln!(">>> [Heartbeat] WDA 连接异常 (确认确认失联)");
+                                }
                             }
                         }
                     }
@@ -57,6 +61,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::device::get_window_size,
+            commands::device::update_video_settings,
             commands::touch::send_tap,
             commands::touch::send_touch_actions,
             commands::touch::send_keys,

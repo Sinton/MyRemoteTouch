@@ -17,3 +17,9 @@ pub async fn get_window_size(wda: tauri::State<'_, WdaClient>) -> AppResult<Wind
     println!("同步到设备分辨率: {}x{}", body.value.width, body.value.height);
     Ok(body.value)
 }
+
+#[tauri::command]
+pub async fn update_video_settings(wda: tauri::State<'_, WdaClient>, quality: u8, framerate: u8) -> AppResult<()> {
+    println!(">>> [WDA] 更新视频画质设置: Quality={}, Framerate={}", quality, framerate);
+    wda.update_settings(quality, framerate).await
+}

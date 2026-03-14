@@ -10,6 +10,10 @@ export const DeviceService = {
     return await invoke<{ width: number; height: number }>("get_window_size");
   },
 
+  async updateVideoSettings(quality: number, framerate: number) {
+    return await invoke("update_video_settings", { quality, framerate });
+  },
+
   // Touch Controls
   async sendTap(x: number, y: number) {
     return await invoke("send_tap", { x, y });

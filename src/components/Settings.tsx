@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore, BackgroundMode } from '../store/useAppStore';
+import { DeviceService } from '../services/deviceService';
 
 interface SettingsProps {
   visible: boolean;
@@ -7,10 +8,19 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
-  const { theme, setTheme, resetTheme } = useAppStore();
+  const { theme, setTheme, resetTheme, videoQuality, setVideoQuality, videoFramerate, setVideoFramerate } = useAppStore();
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
+
+  const handleVideoSettingsChange = async () => {
+    try {
+      await DeviceService.updateVideoSettings(useAppStore.getState().videoQuality, useAppStore.getState().videoFramerate);
+      setToast('画质设置已应用');
+    } catch {
+      setToast('画质应用失败，请检查连接');
+    }
+  };
 
   // Auto-cancel confirmation after 3s
   React.useEffect(() => {
@@ -81,17 +91,47 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
 
             <div className="space-y-6">
               <div className="flex items-center justify-between group">
-                <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">解析速率</span>
-                <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/[0.05]">
-                  <span className="text-[11px] font-black text-white/40 tracking-tighter uppercase">Ultra High</span>
-                  <div className="w-1.5 h-1.5 bg-[#0A84FF] rounded-full animate-pulse shadow-[0_0_8px_rgba(10,132,255,0.5)]" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between group">
                 <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">画面比例</span>
                 <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.05] text-[11px] font-bold text-white/80 select-none">
-                  390x844
+                  {useAppStore().lastConnectedResolution}
                 </div>
+              </div>
+
+              {/* Quality Slider */}
+              <div className="space-y-3 group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">画质 (Quality)</span>
+                  <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/[0.05]">
+                    <span className="text-[11px] font-black text-[#0A84FF] tracking-tighter uppercase">{videoQuality}%</span>
+                    {(videoQuality > 80) && <div className="w-1.5 h-1.5 bg-[#0A84FF] rounded-full shadow-[0_0_8px_rgba(10,132,255,0.5)]" />}
+                  </div>
+                </div>
+                <input 
+                  type="range" min="10" max="100" step="5"
+                  value={videoQuality}
+                  onChange={(e) => setVideoQuality(Number(e.target.value))}
+                  onMouseUp={handleVideoSettingsChange}
+                  onTouchEnd={handleVideoSettingsChange}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#0A84FF] hover:accent-white transition-all"
+                />
+              </div>
+
+              {/* Framerate Slider */}
+              <div className="space-y-3 group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">帧率 (FPS)</span>
+                  <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.05] text-[11px] font-bold text-white/80 select-none">
+                    {videoFramerate} fps
+                  </div>
+                </div>
+                <input 
+                  type="range" min="10" max="60" step="5"
+                  value={videoFramerate}
+                  onChange={(e) => setVideoFramerate(Number(e.target.value))}
+                  onMouseUp={handleVideoSettingsChange}
+                  onTouchEnd={handleVideoSettingsChange}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#0A84FF] hover:accent-white transition-all"
+                />
               </div>
             </div>
           </section>

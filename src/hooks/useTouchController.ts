@@ -51,7 +51,7 @@ export const useTouchController = (
 
   const samplePointer = (clientX: number, clientY: number) => {
     const now = performance.now();
-    if (now - lastSampleTimeRef.current < 16) return;
+    if (now - lastSampleTimeRef.current < 50) return;
     lastSampleTimeRef.current = now;
     
     const pos = getCoord(clientX, clientY);

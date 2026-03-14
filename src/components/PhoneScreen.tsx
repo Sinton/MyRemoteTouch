@@ -30,7 +30,7 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
     onPointerCancel 
   } = useTouchController(canvasRef, deviceSize);
 
-  // Initialize Device Resolution
+  // Initialize Device Resolution & Settings
   useEffect(() => {
     const initDeviceInfo = async () => {
       try {
@@ -40,8 +40,12 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
           setDeviceSize({ width: size.width, height: size.height });
           setResolution(`${size.width}x${size.height}`);
         }
+        
+        // Sync persisted video settings to the backend
+        const { videoQuality, videoFramerate } = useAppStore.getState();
+        await DeviceService.updateVideoSettings(videoQuality, videoFramerate);
       } catch (err) {
-        console.error("Failed to fetch device resolution:", err);
+        console.error("Failed to fetch device info or update settings:", err);
       }
     };
     initDeviceInfo();

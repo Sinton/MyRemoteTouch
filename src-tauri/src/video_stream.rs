@@ -20,7 +20,7 @@ pub async fn start_video_server(ws_port: u16, device_port: u16, token: Cancellat
             tokio::select! {
                 _ = worker_token.cancelled() => break,
                 _ = async {
-                    if let Ok(mut device_stream) = TcpStream::connect(format!("127.0.0.1:{}", device_port)).await {
+                    if let Ok(mut device_stream) = TcpStream::connect("127.0.0.1:9100").await {
                         let request = "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: keep-alive\r\n\r\n";
                         if device_stream.write_all(request.as_bytes()).await.is_err() {
                             tokio::time::sleep(std::time::Duration::from_secs(2)).await;
@@ -34,15 +34,28 @@ pub async fn start_video_server(ws_port: u16, device_port: u16, token: Cancellat
                                 Ok(0) => break,
                                 Ok(n) => {
                                     data_acc.extend_from_slice(&buffer[..n]);
-                                    while let Some(start_pos) = find_subsequence(&data_acc, &[0xFF, 0xD8]) {
-                                        if let Some(end_pos) = find_subsequence(&data_acc[start_pos..], &[0xFF, 0xD9]) {
-                                            let frame_end = start_pos + end_pos + 2;
-                                            let frame = data_acc[start_pos..frame_end].to_vec();
-                                            let _ = tx_clone.send(Arc::new(frame));
-                                            data_acc.drain(..frame_end);
-                                        } else { break; }
+                                    
+                                    let mut last_frame_data = None;
+                                    let mut keep_start = 0;
+
+                                    while let Some(start_pos) = find_subsequence(&data_acc[keep_start..], &[0xFF, 0xD8]) {
+                                        let abs_start = keep_start + start_pos;
+                                        if let Some(end_pos) = find_subsequence(&data_acc[abs_start..], &[0xFF, 0xD9]) {
+                                            let frame_end = abs_start + end_pos + 2;
+                                            last_frame_data = Some(data_acc[abs_start..frame_end].to_vec());
+                                            keep_start = frame_end;
+                                        } else {
+                                            break;
+                                        }
                                     }
-                                    if data_acc.len() > 1024 * 1024 { data_acc.clear(); }
+
+                                    if let Some(frame) = last_frame_data {
+                                        let _ = tx_clone.send(Arc::new(frame));
+                                        data_acc.drain(..keep_start);
+                                    } else if data_acc.len() > 5 * 1024 * 1024 { 
+                                        data_acc.clear(); 
+                                    }
+
                                 }
                                 Err(_) => break,
                             }

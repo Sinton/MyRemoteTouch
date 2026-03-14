@@ -16,19 +16,24 @@ pub async fn send_touch_actions(wda: tauri::State<'_, WdaClient>, actions: Vec<T
     if actions.is_empty() { return Ok(()); }
     let sid = wda.get_session_id().await;
     let mut pointer_actions = Vec::new();
-    
     let start = &actions[0];
+    let end = &actions[actions.len() - 1];
+    
+    // 计算总滑动时长，限制在 100ms - 800ms 之间，追求极致响应
+    let total_duration = (end.time.saturating_sub(start.time)).clamp(100, 800);
+    
+    // 如果滑动时间超过 300ms，说明用户有拖拽意图，加入 200ms 的长按 Pause 停顿，以触发 iOS 的 hold-and-drag
+    let is_drag = total_duration > 300;
+    
     pointer_actions.push(json!({ "type": "pointerMove", "duration": 0, "x": start.x, "y": start.y }));
     pointer_actions.push(json!({ "type": "pointerDown", "button": 0 }));
     
-    let mut last_time = start.time;
-    for i in 1..actions.len() {
-        let point = &actions[i];
-        let mut duration = point.time.saturating_sub(last_time);
-        if duration > 500 { duration = 500; }
-        pointer_actions.push(json!({ "type": "pointerMove", "duration": duration, "x": point.x, "y": point.y }));
-        last_time = point.time;
+    if is_drag {
+        pointer_actions.push(json!({ "type": "pause", "duration": 200 }));
     }
+    
+    // 我们舍弃掉中间所有稀碎的采样点，只给 WDA 发送起点和终点
+    pointer_actions.push(json!({ "type": "pointerMove", "duration": total_duration, "x": end.x, "y": end.y }));
     pointer_actions.push(json!({ "type": "pointerUp", "button": 0 }));
     
     let w3c_body = json!({
