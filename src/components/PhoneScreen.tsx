@@ -10,6 +10,7 @@ import { useAppStore } from '../store/useAppStore';
  */
 interface PhoneScreenProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
+  showMetrics?: boolean;
 }
 
 const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
@@ -18,7 +19,7 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
   const { setResolution } = useAppStore();
   
   // Logic: Video Streaming
-  const { isConnected } = usePhoneStream(canvasRef, deviceSize);
+  const { isConnected, fps, bitrate } = usePhoneStream(canvasRef, deviceSize);
   
   // Logic: Touch/Input Control
   const { 
@@ -120,6 +121,19 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({ position = 'bottom' }) => {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
         />
+
+        {/* Performance Metrics Overlay */}
+        {isConnected && (
+          <div className="absolute top-[40px] right-[20px] bg-black/40 backdrop-blur-md rounded-lg px-2 py-1 flex flex-col gap-0.5 border border-white/10 pointer-events-none z-[100] select-none">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${fps > 25 ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-yellow-500'}`} />
+              <span className="text-[10px] font-black text-white/90 tabular-nums leading-none tracking-tight">{fps} FPS</span>
+            </div>
+            {bitrate > 0 && (
+              <span className="text-[9px] font-bold text-white/40 tabular-nums leading-none ml-3">{(bitrate / 1024 / 1024).toFixed(1)} Mbps</span>
+            )}
+          </div>
+        )}
 
         {/* Visual feedback for taps */}
         {tapMarker && (

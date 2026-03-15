@@ -1,4 +1,4 @@
-use idevice::usbmuxd::{UsbmuxdConnection, UsbmuxdListenEvent};
+use idevice::usbmuxd::{UsbmuxdConnection, UsbmuxdDevice, UsbmuxdListenEvent, Connection};
 use tauri::{AppHandle, Emitter};
 use tokio::net::TcpListener;
 use tokio::io;
@@ -53,27 +53,19 @@ async fn connect_device_port(device_id: u32, port: u16) -> Result<DeviceStream, 
     Ok(DeviceStream { inner: socket })
 }
 
-use tokio::sync::Mutex as TokioMutex;
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref CACHED_DEVICE_ID: TokioMutex<Option<u32>> = TokioMutex::new(None);
+/// 从设备列表中找到第一个 USB 连接的设备
+fn find_usb_device(devices: &[UsbmuxdDevice]) -> Option<&UsbmuxdDevice> {
+    // 优先选择 USB 连接的设备
+    devices.iter().find(|d| matches!(d.connection_type, Connection::Usb))
+        .or_else(|| devices.first()) // 回退到第一个设备
 }
 
+/// 获取当前可用的 USB 设备 ID（每次实时扫描）
 async fn get_device_id() -> Option<u32> {
-    let mut cache = CACHED_DEVICE_ID.lock().await;
-    if let Some(id) = *cache {
-        return Some(id);
-    }
-    
     match UsbmuxdConnection::default().await {
         Ok(mut mux) => {
             if let Ok(devices) = mux.get_devices().await {
-                if let Some(dev) = devices.first() {
-                    let id = dev.device_id;
-                    *cache = Some(id);
-                    return Some(id);
-                }
+                return find_usb_device(&devices).map(|d| d.device_id);
             }
         }
         Err(_) => {}
@@ -97,7 +89,6 @@ pub async fn start_proxy(local_port: u16, device_port: u16) {
     loop {
         if let Ok((mut client_stream, peer_addr)) = listener.accept().await {
             tokio::spawn(async move {
-                // 使用缓存的设备 ID 减少 usbmuxd 握手次数
                 let device_id = match get_device_id().await {
                     Some(id) => id,
                     None => {
@@ -106,7 +97,6 @@ pub async fn start_proxy(local_port: u16, device_port: u16) {
                     }
                 };
 
-                // 2. 通过 idevice 库建立到设备端口的隧道
                 match connect_device_port(device_id, device_port).await {
                     Ok(mut device_stream) => {
                         let _ = io::copy_bidirectional(&mut client_stream, &mut device_stream).await;
@@ -140,8 +130,16 @@ pub fn init_proxies(app_handle: AppHandle) {
                         // 首次启动时获取已有设备
                         if let Ok(devices) = mux.get_devices().await {
                             for d in &devices {
-                                println!(">>> [iOS Proxy] 发现设备: UDID={}, DeviceID={}", d.udid, d.device_id);
-                                let _ = app_handle.emit("device-connected", d.udid.clone());
+                                let conn_type = match &d.connection_type {
+                                    Connection::Usb => "USB",
+                                    Connection::Network(_) => "WiFi",
+                                    Connection::Unknown(s) => s.as_str(),
+                                };
+                                println!(">>> [iOS Proxy] 发现设备: UDID={}, DeviceID={}, 连接={}", d.udid, d.device_id, conn_type);
+                            }
+                            // 只对 USB 设备发出 connected 事件
+                            if let Some(usb_dev) = find_usb_device(&devices) {
+                                let _ = app_handle.emit("device-connected", usb_dev.udid.clone());
                             }
                         }
 
@@ -150,8 +148,15 @@ pub fn init_proxies(app_handle: AppHandle) {
                             while let Some(event) = stream.next().await {
                                 match event {
                                     Ok(UsbmuxdListenEvent::Connected(dev)) => {
-                                        println!(">>> [iOS Proxy] 设备接入: UDID={}, DeviceID={}", dev.udid, dev.device_id);
-                                        let _ = app_handle.emit("device-connected", dev.udid);
+                                        let conn_type = match &dev.connection_type {
+                                            Connection::Usb => "USB",
+                                            Connection::Network(_) => "WiFi",
+                                            Connection::Unknown(s) => s.as_str(),
+                                        };
+                                        println!(">>> [iOS Proxy] 设备接入: UDID={}, DeviceID={}, 连接={}", dev.udid, dev.device_id, conn_type);
+                                        if matches!(dev.connection_type, Connection::Usb) {
+                                            let _ = app_handle.emit("device-connected", dev.udid);
+                                        }
                                     }
                                     Ok(UsbmuxdListenEvent::Disconnected(id)) => {
                                         println!(">>> [iOS Proxy] 设备断开: DeviceID={}", id);
