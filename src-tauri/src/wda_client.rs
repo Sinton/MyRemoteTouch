@@ -6,6 +6,7 @@ use crate::error::{AppResult, AppError};
 #[derive(Deserialize, Debug)]
 pub struct WdaResponse<T> {
     pub value: T,
+    #[allow(dead_code)]
     #[serde(rename = "sessionId")]
     pub session_id: Option<String>,
 }
@@ -101,40 +102,56 @@ impl WdaClient {
     }
 
     async fn set_session(&self, id: String) {
-        {
-            let mut lock = self.session_id.lock().unwrap();
-            *lock = Some(id.clone());
-        }
-        let _ = self.apply_settings(&id).await;
-    }
-
-    async fn apply_settings(&self, sid: &str) -> AppResult<()> {
-        self.update_settings_for_session(sid, 100, 60).await
+        let mut lock = self.session_id.lock().unwrap();
+        *lock = Some(id);
     }
 
     pub async fn update_settings(&self, quality: u8, framerate: u8) -> AppResult<()> {
         let sid = self.get_session_id().await;
-        self.update_settings_for_session(&sid, quality, framerate).await
+        self.update_settings_for_session(&sid, quality, framerate, None).await
     }
 
-    async fn update_settings_for_session(&self, sid: &str, quality: u8, framerate: u8) -> AppResult<()> {
-        let settings = json!({
-            "settings": {
-                "waitForQuiescence": false,
-                "waitForIdle": false,
-                "animationCoolOffTimeout": 0,
-                "shouldUseCompactResponses": true,
-                "elementResponseAttributes": "type,label",
-                "mjpegServerScreenshotQuality": quality,
-                "mjpegServerFramerate": framerate,
-                "screenshotQuality": 1
-            }
+    pub async fn update_settings_with_scale(&self, quality: u8, framerate: u8, scale: f32) -> AppResult<()> {
+        let sid = self.get_session_id().await;
+        self.update_settings_for_session(&sid, quality, framerate, Some(scale)).await
+    }
+
+    async fn update_settings_for_session(&self, sid: &str, quality: u8, framerate: u8, scale: Option<f32>) -> AppResult<()> {
+        // 确定最终的缩放因子
+        let final_scale = scale.unwrap_or(1.0);
+        
+        let settings_obj = serde_json::json!({
+            "waitForQuiescence": false,
+            "waitForIdle": false,
+            "animationCoolOffTimeout": 0,
+            "shouldUseCompactResponses": true,
+            "elementResponseAttributes": "type,label",
+            "mjpegServerScreenshotQuality": quality,
+            "mjpegServerFramerate": framerate,
+            "mjpegScaleFactor": final_scale,
+            "screenshotQuality": 1,
+            "snapshotMaxDepth": 50
         });
-        self.client
+        
+        let settings = json!({
+            "settings": settings_obj
+        });
+        
+        println!(">>> [WDA] 应用设置 - 质量:{}, 帧率:{}, 缩放:{:.0}%", 
+            quality, framerate, final_scale * 100.0);
+        
+        let response = self.client
             .post(format!("{}/session/{}/appium/settings", self.base_url, sid))
             .json(&settings)
             .send()
             .await?;
+        
+        if response.status().is_success() {
+            println!(">>> [WDA] ✓ 设置应用成功");
+        } else {
+            eprintln!(">>> [WDA] ✗ 设置应用失败: {}", response.status());
+        }
+        
         Ok(())
     }
 
@@ -147,5 +164,13 @@ impl WdaClient {
             Ok(res) => res.status().is_success(),
             Err(_) => false,
         }
+    }
+
+    pub async fn get_current_settings(&self) -> AppResult<serde_json::Value> {
+        let sid = self.get_session_id().await;
+        let url = format!("{}/session/{}/appium/settings", self.base_url, sid);
+        let res = self.client.get(&url).send().await?;
+        let body = res.json::<serde_json::Value>().await?;
+        Ok(body)
     }
 }

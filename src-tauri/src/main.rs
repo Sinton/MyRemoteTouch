@@ -9,6 +9,8 @@ pub mod error;
 pub mod commands;
 
 use crate::wda_client::WdaClient;
+use crate::video::StreamingState;
+use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
 const WDA_URL: &str = "http://127.0.0.1:8100";
@@ -16,9 +18,14 @@ const WDA_URL: &str = "http://127.0.0.1:8100";
 fn main() {
     let cancel_token = CancellationToken::new();
     let app_token = cancel_token.clone();
+    
+    // 默认开启后台抓流（对应前端默认的标准模式）
+    let streaming_state = Arc::new(StreamingState::new(true));
+    let app_streaming_state = Arc::clone(&streaming_state);
 
     tauri::Builder::default()
         .manage(WdaClient::new(WDA_URL))
+        .manage(app_streaming_state)
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -27,8 +34,9 @@ fn main() {
             ios_proxy::init_proxies(handle.clone());
             
             let video_token = token.clone();
+            let video_state = Arc::clone(&streaming_state);
             tauri::async_runtime::spawn(async move {
-                video::start_video_service(9999, 9100, video_token).await;
+                video::start_video_service(9999, 9100, video_state, video_token).await;
             });
 
             let heartbeat_token = token.clone();
@@ -62,6 +70,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::device::get_window_size,
             commands::device::update_video_settings,
+            commands::device::update_video_settings_with_scale,
+            commands::device::get_wda_settings,
+            commands::device::set_video_active,
             commands::touch::send_tap,
             commands::touch::send_touch_actions,
             commands::touch::send_keys,

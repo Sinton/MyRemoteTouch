@@ -14,6 +14,10 @@ export const DeviceService = {
     return await invoke("update_video_settings", { quality, framerate });
   },
 
+  async updateVideoSettingsWithScale(quality: number, framerate: number, scale: number) {
+    return await invoke("update_video_settings_with_scale", { quality, framerate, scale });
+  },
+
   // Touch Controls
   async sendTap(x: number, y: number) {
     return await invoke("send_tap", { x, y });
@@ -47,5 +51,9 @@ export const DeviceService = {
 
   async toggleLock() {
     return await invoke("toggle_lock");
+  },
+
+  async setVideoActive(active: boolean) {
+    return await invoke("set_video_active", { active });
   }
 };

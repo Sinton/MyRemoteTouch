@@ -31,6 +31,14 @@ interface AppState {
   setVideoQuality: (q: number) => void;
   videoFramerate: number;
   setVideoFramerate: (f: number) => void;
+  videoScale: number;
+  setVideoScale: (s: number) => void;
+  streamMode: 'proxy' | 'direct';
+  setStreamMode: (mode: 'proxy' | 'direct') => void;
+  
+  // Low Latency Mode (IMG tag)
+  lowLatencyMode: boolean;
+  setLowLatencyMode: (enabled: boolean) => void;
 }
 
 const defaultTheme: AppTheme = {
@@ -50,7 +58,7 @@ const defaultTheme: AppTheme = {
  */
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Initial Theme
       theme: defaultTheme,
       setTheme: (newTheme) => 
@@ -68,14 +76,40 @@ export const useAppStore = create<AppState>()(
       setVideoQuality: (q) => set({ videoQuality: q }),
       videoFramerate: 60, // 10-60
       setVideoFramerate: (f) => set({ videoFramerate: f }),
+      videoScale: 0.65, // 0.1-1.0 (default 65%)
+      setVideoScale: (s) => set({ videoScale: s }),
+      streamMode: 'proxy', // Force proxy mode (direct mode has CORS issues)
+      setStreamMode: (mode) => {
+        // Prevent switching to direct mode
+        if (mode === 'direct') {
+          console.warn('>>> [Store] Direct mode is disabled due to CORS restrictions');
+          return;
+        }
+        set({ streamMode: mode });
+      },
+      
+      // Low Latency Mode
+      lowLatencyMode: false,
+      setLowLatencyMode: (enabled) => set({ lowLatencyMode: enabled }),
     }),
     {
       name: 'my-remote-touch-storage',
       partialize: (state) => ({ 
         theme: state.theme,
         videoQuality: state.videoQuality,
-        videoFramerate: state.videoFramerate
-      }), 
+        videoFramerate: state.videoFramerate,
+        videoScale: state.videoScale,
+        lowLatencyMode: state.lowLatencyMode,
+        // Don't persist streamMode to always start with proxy
+        // streamMode: state.streamMode
+      }),
+      // Migration: Force proxy mode on load
+      onRehydrateStorage: () => (state) => {
+        if (state && state.streamMode === 'direct') {
+          console.log('>>> [Store] Migrating from direct to proxy mode');
+          state.streamMode = 'proxy';
+        }
+      },
     }
   )
 );

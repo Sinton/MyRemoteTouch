@@ -8,14 +8,21 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
-  const { theme, setTheme, resetTheme, videoQuality, setVideoQuality, videoFramerate, setVideoFramerate } = useAppStore();
+  const { 
+    theme, setTheme, resetTheme, 
+    videoQuality, setVideoQuality, 
+    videoFramerate, setVideoFramerate, 
+    videoScale, setVideoScale, 
+    lowLatencyMode, setLowLatencyMode 
+  } = useAppStore();
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
 
   const handleVideoSettingsChange = async () => {
     try {
-      await DeviceService.updateVideoSettings(useAppStore.getState().videoQuality, useAppStore.getState().videoFramerate);
+      const { videoQuality, videoFramerate, videoScale } = useAppStore.getState();
+      await DeviceService.updateVideoSettingsWithScale(videoQuality, videoFramerate, videoScale);
       setToast('画质设置已应用');
     } catch {
       setToast('画质应用失败，请检查连接');
@@ -29,6 +36,19 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
       return () => clearTimeout(timer);
     }
   }, [confirmReset]);
+
+  // Sync background streaming state based on mode
+  React.useEffect(() => {
+    const syncStreamingState = async () => {
+      try {
+        if (!(window as any).__TAURI__) return;
+        await DeviceService.setVideoActive(!lowLatencyMode);
+      } catch (err) {
+        console.error("Failed to sync streaming state:", err);
+      }
+    };
+    syncStreamingState();
+  }, [lowLatencyMode]);
 
   // Toast timer
   React.useEffect(() => {
@@ -107,13 +127,17 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                   </div>
                 </div>
                 <input 
-                  type="range" min="10" max="100" step="5"
+                  type="range" min="30" max="100" step="5"
                   value={videoQuality}
                   onChange={(e) => setVideoQuality(Number(e.target.value))}
                   onMouseUp={handleVideoSettingsChange}
                   onTouchEnd={handleVideoSettingsChange}
                   className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#0A84FF] hover:accent-white transition-all"
                 />
+                <div className="flex justify-between text-[10px] text-white/30 px-1">
+                  <span>性能优先</span>
+                  <span>画质优先</span>
+                </div>
               </div>
 
               {/* Framerate Slider */}
@@ -132,6 +156,49 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                   onTouchEnd={handleVideoSettingsChange}
                   className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#0A84FF] hover:accent-white transition-all"
                 />
+              </div>
+
+              {/* Scale Slider (Clarity Sampling) */}
+              <div className="space-y-3 group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">清晰度采样</span>
+                  <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.05] text-[11px] font-bold text-white/80 select-none">
+                    {Math.round(videoScale * 100)}%
+                  </div>
+                </div>
+                <input 
+                  type="range" min="0.1" max="1.0" step="0.05"
+                  value={videoScale}
+                  onChange={(e) => setVideoScale(Number(e.target.value))}
+                  onMouseUp={handleVideoSettingsChange}
+                  onTouchEnd={handleVideoSettingsChange}
+                  className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#0A84FF] hover:accent-white transition-all"
+                />
+              </div>
+
+              {/* Minimum Display Mode Item */}
+              <div className="flex items-center justify-between group pt-2">
+                <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">显示模式</span>
+                <div className="flex bg-black/50 p-1 rounded-xl border border-white/[0.05] relative w-[96px] shrink-0 shadow-inner">
+                  {[
+                    { value: false, label: '标准' },
+                    { value: true, label: '极速' }
+                  ].map((mode) => (
+                    <button
+                      key={mode.label}
+                      onClick={() => setLowLatencyMode(mode.value)}
+                      className={`flex-1 py-1.5 text-[10px] font-black z-10 rounded-lg transition-all duration-300 relative
+                        ${lowLatencyMode === mode.value ? 'text-white' : 'text-white/20 hover:text-white/40'}`}
+                    >
+                      {lowLatencyMode === mode.value && (
+                        <div className={`absolute inset-0 rounded-lg shadow-lg animate-[fade-in_0.2s_ease-out] -z-10 ${
+                          mode.value ? 'bg-amber-500 shadow-amber-500/20' : 'bg-[#0A84FF] shadow-[#0A84FF]/20'
+                        }`} />
+                      )}
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

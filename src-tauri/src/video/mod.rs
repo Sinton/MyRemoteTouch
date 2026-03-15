@@ -5,34 +5,44 @@ use crate::video::mjpeg::MjpegProvider;
 use crate::video::server::WsVideoServer;
 
 pub mod mjpeg;
-pub mod h264;
-pub mod h264_dvt;
 pub mod server;
+pub mod config;
 
-/// 视频流模块入口：负责协调不同的视频源（MJPEG/H264）和分发服务器
-pub async fn start_video_service(ws_port: u16, wda_port: u16, token: CancellationToken) {
-    // 1. 创建共享的广播通道 (容量10帧，防止堆积)
-    let (tx, _) = broadcast::channel::<Arc<Vec<u8>>>(10);
+use std::sync::atomic::AtomicBool;
+
+pub struct StreamingState {
+    pub enabled: AtomicBool,
+}
+
+impl StreamingState {
+    pub fn new(enabled: bool) -> Self {
+        Self {
+            enabled: AtomicBool::new(enabled),
+        }
+    }
+}
+
+/// 视频流模块入口 - 仅使用 MJPEG 方案
+pub async fn start_video_service(ws_port: u16, wda_port: u16, state: Arc<StreamingState>, token: CancellationToken) {
+    // 使用更小的广播通道容量（4 帧）以进一步降低延迟
+    let (tx, _) = broadcast::channel::<Arc<Vec<u8>>>(4);
     let tx = Arc::new(tx);
 
-    // 2. 启动 MJPEG 备选方案提供者 (方案 A)
-    let mjpeg_tx = Arc::clone(&tx);
-    let mjpeg_token = token.clone();
-    tokio::spawn(async move {
-        let mut provider = MjpegProvider::new(wda_port, mjpeg_tx);
-        provider.run(mjpeg_token).await;
-    });
-
-    // 3. 启动 H.264 原生流提供者 (方案 C)
-    let h264_tx = Arc::clone(&tx);
-    let h264_token = token.clone();
-    tokio::spawn(async move {
-        let mut provider = h264::H264Provider::new(h264_tx);
-        provider.run(h264_token).await;
-    });
-
-    // 4. 启动 WebSocket 分发服务器
+    let ws_server = WsVideoServer::new(ws_port, Arc::clone(&tx));
     let server_token = token.clone();
-    let ws_server = WsVideoServer::new(ws_port, tx);
-    ws_server.run(server_token).await;
+    tokio::spawn(async move {
+        ws_server.run(server_token).await;
+    });
+
+    println!(">>> [Video] WebSocket 视频流服务器已在端口 {} 启动", ws_port);
+
+    let provider_tx = Arc::clone(&tx);
+    let provider_token = token.clone();
+    let provider_state = Arc::clone(&state);
+    
+    tokio::spawn(async move {
+        println!(">>> [Video] 启动 MJPEG 视频流提供者后台任务...");
+        let mut mjpeg_provider = MjpegProvider::new(wda_port, provider_tx, provider_state);
+        mjpeg_provider.run(provider_token).await;
+    });
 }

@@ -10,6 +10,8 @@ const Phone: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [toolbarPos, setToolbarPos] = useState<ToolbarPosition>('bottom');
   const [isDragging, setIsDragging] = useState(false);
+  const [fps, setFps] = useState(0);
+  const [bitrate, setBitrate] = useState(0);
   const phoneRef = useRef<HTMLDivElement>(null);
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -89,9 +91,15 @@ const Phone: React.FC = () => {
           onVolumeDownClick={pressVolumeDown}
           onMuteClick={pressMute}
           onLockClick={pressLock}
+          fps={fps}
+          bitrate={bitrate}
         />
         <div className="relative" ref={phoneRef}>
-          <PhoneScreen position={toolbarPos} />
+          <PhoneScreen 
+            position={toolbarPos} 
+            setFpsState={setFps} 
+            setBitrateState={setBitrate} 
+          />
         </div>
       </div>
       
