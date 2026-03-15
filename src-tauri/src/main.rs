@@ -4,7 +4,7 @@
 use tauri::Manager;
 mod ios_proxy;
 mod wda_client;
-mod video_stream;
+mod video;
 pub mod error;
 pub mod commands;
 
@@ -28,7 +28,7 @@ fn main() {
             
             let video_token = token.clone();
             tauri::async_runtime::spawn(async move {
-                video_stream::start_video_server(9999, 9100, video_token).await;
+                video::start_video_service(9999, 9100, video_token).await;
             });
 
             let heartbeat_token = token.clone();
