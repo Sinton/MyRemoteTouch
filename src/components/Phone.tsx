@@ -58,11 +58,57 @@ const Phone: React.FC = () => {
     };
   }, [isDragging]);
 
-  const pressHome = () => DeviceService.pressHome();
-  const pressVolumeUp = () => DeviceService.pressVolumeUp();
-  const pressVolumeDown = () => DeviceService.pressVolumeDown();
+  const [isProcessingHardware, setIsProcessingHardware] = useState(false);
+
+  const pressHome = async () => {
+    if (isProcessingHardware) return;
+    setIsProcessingHardware(true);
+    try {
+      await DeviceService.pressHome();
+    } catch (error) {
+      console.error('Home button failed:', error);
+    } finally {
+      setIsProcessingHardware(false);
+    }
+  };
+  
+  const pressVolumeUp = async () => {
+    if (isProcessingHardware) return;
+    setIsProcessingHardware(true);
+    try {
+      await DeviceService.pressVolumeUp();
+    } catch (error) {
+      console.error('Volume up failed:', error);
+    } finally {
+      setIsProcessingHardware(false);
+    }
+  };
+  
+  const pressVolumeDown = async () => {
+    if (isProcessingHardware) return;
+    setIsProcessingHardware(true);
+    try {
+      await DeviceService.pressVolumeDown();
+    } catch (error) {
+      console.error('Volume down failed:', error);
+    } finally {
+      setIsProcessingHardware(false);
+    }
+  };
+  
   const pressMute = () => DeviceService.pressMute();
-  const pressLock = () => DeviceService.toggleLock();
+  
+  const pressLock = async () => {
+    if (isProcessingHardware) return;
+    setIsProcessingHardware(true);
+    try {
+      await DeviceService.toggleLock();
+    } catch (error) {
+      console.error('Lock toggle failed:', error);
+    } finally {
+      setIsProcessingHardware(false);
+    }
+  };
 
   // Helper for layout orientation classes
   const getLayoutClasses = () => {
@@ -92,6 +138,7 @@ const Phone: React.FC = () => {
           onVolumeDownClick={pressVolumeDown}
           onMuteClick={pressMute}
           onLockClick={pressLock}
+          isProcessingHardware={isProcessingHardware}
           fps={fps}
           bitrate={bitrate}
         />

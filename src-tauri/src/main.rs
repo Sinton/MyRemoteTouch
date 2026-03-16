@@ -107,6 +107,7 @@ fn main() {
             // 硬件按键
             commands::hardware::press_home_button,
             commands::hardware::press_mute_button,
+            commands::hardware::press_action_button,
             commands::hardware::press_volume_up,
             commands::hardware::press_volume_down,
             commands::hardware::toggle_lock

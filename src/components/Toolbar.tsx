@@ -14,6 +14,7 @@ interface ToolbarProps {
   onVolumeUpClick: () => void;
   onVolumeDownClick: () => void;
   onLockClick: () => void;
+  isProcessingHardware?: boolean;
   fps: number;
   bitrate: number;
 }
@@ -28,6 +29,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onVolumeUpClick,
   onVolumeDownClick,
   onLockClick,
+  isProcessingHardware = false,
   fps,
   bitrate
 }) => {
@@ -47,26 +49,50 @@ const Toolbar: React.FC<ToolbarProps> = ({
       ></div>
       
       <div className={`flex items-center gap-[12px] ${isVertical ? 'flex-col' : ''}`}>
-        <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Home" onClick={onHomeClick}>
+        <button 
+          className={`bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center transition-all duration-150 ${isProcessingHardware ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`}
+          title="Home" 
+          onClick={onHomeClick}
+          disabled={isProcessingHardware}
+        >
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
         </button>
         
-        <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Lock" onClick={onLockClick}>
+        <button 
+          className={`bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center transition-all duration-150 ${isProcessingHardware ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`}
+          title="Lock" 
+          onClick={onLockClick}
+          disabled={isProcessingHardware}
+        >
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
         </button>
 
-        <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Mute" onClick={onMuteClick}>
+        <button 
+          className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-not-allowed opacity-50 transition-all duration-150" 
+          title="Mute (iOS physical switch - not supported)" 
+          disabled
+        >
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4l16 16"></path>
           </svg>
         </button>
 
-        <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Volume Up" onClick={onVolumeUpClick}>
+        <button 
+          className={`bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center transition-all duration-150 ${isProcessingHardware ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`}
+          title="Volume Up" 
+          onClick={onVolumeUpClick}
+          disabled={isProcessingHardware}
+        >
             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
         </button>
 
-        <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Volume Down" onClick={onVolumeDownClick}>
+        <button 
+          className={`bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center transition-all duration-150 ${isProcessingHardware ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`}
+          title="Volume Down" 
+          onClick={onVolumeDownClick}
+          disabled={isProcessingHardware}
+        >
             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
         </button>
         
