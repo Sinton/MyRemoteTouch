@@ -108,18 +108,18 @@ export const TouchDebugPanel: React.FC = () => {
         className={`fixed top-0 left-0 w-[450px] h-screen bg-black/40 backdrop-blur-[45px] saturate-[180%] border-r border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.4)] z-[10000] transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-hidden
           ${isTouchDebugOpen ? 'translate-x-0' : 'translate-x-[-450px]'}`}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-[3px] h-4 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]" />
-            <h3 className="text-[16px] font-black text-white/90 uppercase tracking-widest italic">调试控制台</h3>
+        {/* Header - Ultra-compressed */}
+        <div className="flex justify-between items-center px-5 py-2.5 border-b border-white/5 bg-white/5">
+          <div className="flex items-center gap-2">
+            <div className="w-[2.5px] h-3.5 bg-amber-500 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.5)]" />
+            <h3 className="text-[14px] font-black text-white/90 uppercase tracking-widest italic">调试控制台</h3>
           </div>
           
           <button
             onClick={() => setIsTouchDebugOpen(false)}
-            className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg border border-white/5 transition-all"
+            className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg border border-white/5 transition-all active:scale-90 cursor-pointer"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
@@ -139,20 +139,55 @@ export const TouchDebugPanel: React.FC = () => {
               <span className="uppercase tracking-[0.4em] font-black opacity-40 text-[10px]">正在等待日志输入...</span>
             </div>
           ) : (
-            logs.map((log, index) => (
-              <div
-                key={index}
-                className={`p-2.5 rounded-lg border border-white/5 leading-relaxed break-all animate-[slide-in-left_0.4s_ease-out] select-text
-                  ${log.includes('[ERROR]') ? 'bg-red-500/10 text-red-300/80 border-red-500/20' : 
-                    log.includes('成功') || log.includes('正常') ? 'bg-emerald-500/10 text-emerald-300/80 border-emerald-500/20' : 
-                    'bg-white/5 text-emerald-400/90'}`}
-              >
-                <div className="flex gap-2">
-                  <span className="opacity-20 font-black tabular-nums shrink-0 text-[10px]">{ (index + 1).toString().padStart(3, '0') }</span>
-                  <span>{log}</span>
+            logs.map((log, index) => {
+              const isError = log.includes('[ERROR]');
+              const isSuccess = log.includes('成功') || log.includes('正常');
+              const isWda = log.includes('WDA');
+              
+              // 尝试提取时间戳和内容 (假设格式为 ISO 字符串开头或特定分隔符)
+              // 这里我们直接根据字符串特征进行更精细的渲染
+              return (
+                <div
+                  key={index}
+                  className={`group relative mt-3 flex items-start gap-3 px-4 py-3 rounded-xl border border-white/5 transition-all duration-300 hover:bg-white/[0.03] animate-[slide-in-left:0.3s_ease-out]
+                    ${isError ? 'bg-red-500/[0.08] border-red-500/20 shadow-[0_4px_20px_rgba(239,68,68,0.05)]' : 
+                      isSuccess ? 'bg-emerald-500/[0.08] border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' : 
+                      isWda ? 'bg-blue-500/[0.08] border-blue-500/20' : 'bg-white/[0.02]'}`}
+                >
+                  {/* 第一类“数字标签”：悬浮于上边框正中间，完全不影响选择 */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-10 px-1 bg-[#1a1a1c]">
+                    <span className="text-[10px] font-black text-white/10 tabular-nums leading-none tracking-tight">
+                      { (index + 1).toString().padStart(3, '0') }
+                    </span>
+                  </div>
+
+                  {/* 主内容区域 */}
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    {/* 头部：Level 标签 */}
+                    <div className="flex items-center gap-2 select-none pointer-events-none">
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.15em] leading-none
+                        ${isError ? 'bg-red-500 text-white' : 
+                          isSuccess ? 'bg-emerald-500 text-white' : 
+                          isWda ? 'bg-[#0A84FF] text-white' : 'bg-white/10 text-white/40'}`}>
+                        {isError ? 'ERR' : isSuccess ? 'OK' : isWda ? 'WDA' : 'LOG'}
+                      </span>
+                    </div>
+
+                    {/* 正文：内容占满全宽 */}
+                    <div className={`text-[11px] leading-relaxed break-all select-text
+                      ${isError ? 'text-red-300/90' : isSuccess ? 'text-emerald-300/90' : 'text-white/80'}`}>
+                      {log}
+                    </div>
+                  </div>
+
+                  {/* 状态装饰装饰：放在最左边作为点缀 */}
+                  <div className={`absolute left-0 top-[30%] bottom-[30%] w-[1.5px] rounded-full transition-all duration-500
+                    ${isError ? 'bg-red-500 shadow-[2px_0_10px_rgba(239,68,68,0.5)]' : 
+                      isSuccess ? 'bg-emerald-500 opacity-60' : 
+                      'bg-white/10 opacity-40'}`} />
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

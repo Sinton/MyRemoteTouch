@@ -55,11 +55,13 @@ export const useTouchController = (
 
   const samplePointer = (clientX: number, clientY: number) => {
     const now = performance.now();
-    if (now - lastSampleTimeRef.current < 50) return;
+    // 提高采样频率到 30fps (33ms)，更好地捕捉快速滑动
+    if (now - lastSampleTimeRef.current < 33) return;
     lastSampleTimeRef.current = now;
     
     const pos = getCoord(clientX, clientY);
     const lastPoint = trajectoryRef.current[trajectoryRef.current.length - 1];
+    // 只有当坐标真正变化时才添加新点，避免重复点
     if (!lastPoint || lastPoint.x !== pos.x || lastPoint.y !== pos.y) {
        trajectoryRef.current.push({ ...pos, time: Date.now() });
     }

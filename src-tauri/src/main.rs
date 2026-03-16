@@ -9,6 +9,7 @@ mod app_state;
 mod clients;
 mod services;
 mod video;
+mod gestures;
 pub mod error;
 pub mod commands;
 
@@ -94,9 +95,16 @@ fn main() {
             commands::device::get_wda_settings,
             commands::device::set_video_active,
             commands::device::diagnose_wda_connection,
+            // 触控操作
             commands::touch::send_tap,
-            commands::touch::send_touch_actions,
+            commands::touch::send_double_tap,
+            commands::touch::send_long_press,
+            commands::touch::send_swipe,
+            commands::touch::send_swipe_path,
+            commands::touch::send_drag,
+            commands::touch::send_touch_actions,  // 兼容旧 API
             commands::touch::send_keys,
+            // 硬件按键
             commands::hardware::press_home_button,
             commands::hardware::press_mute_button,
             commands::hardware::press_volume_up,

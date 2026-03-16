@@ -41,12 +41,14 @@ impl WdaClient {
             .build()
             .expect("Failed to build reqwest client");
 
-        // 专用客户端：禁用连接池，设置极短超时
+        // 专用客户端：用于触控操作，启用连接复用以提升性能
         let dedicated_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(3)) // 3秒强制超时
+            .timeout(std::time::Duration::from_secs(10)) // 10秒超时
             .connect_timeout(std::time::Duration::from_secs(2))
             .tcp_nodelay(true)
-            .pool_max_idle_per_host(0) // 禁用连接复用，避免拥塞
+            .tcp_keepalive(Some(std::time::Duration::from_secs(60)))  // 启用 TCP keep-alive
+            .pool_idle_timeout(std::time::Duration::from_secs(90))  // 连接池空闲超时
+            .pool_max_idle_per_host(5)  // 保持 5 个空闲连接，复用连接
             .http1_only()
             .no_proxy()
             .build()
@@ -82,6 +84,13 @@ impl WdaClient {
             Ok(id) => {
                 let arc_id = Arc::new(id);
                 self.set_session(Arc::clone(&arc_id)).await;
+                
+                // 立即应用低延迟设置
+                info!("应用低延迟设置到新 Session");
+                if let Err(e) = self.apply_low_latency_settings(&arc_id).await {
+                    warn!("应用低延迟设置失败: {}", e);
+                }
+                
                 arc_id
             }
             Err(e) => {
@@ -140,6 +149,37 @@ impl WdaClient {
         *lock = Some(id);
     }
 
+    /// 应用低延迟设置（专门用于触控操作）
+    async fn apply_low_latency_settings(&self, sid: &str) -> AppResult<()> {
+        let settings_obj = serde_json::json!({
+            "shouldUseCompactResponses": true,
+            "elementResponseAttributes": "type,label",
+            "waitForIdleTimeout": 0,  // 禁用等待空闲，立即执行
+            "animationCoolOffTimeout": 0,  // 禁用动画冷却
+            "snapshotMaxDepth": 10,  // 降低快照深度
+        });
+        
+        let settings = json!({
+            "settings": settings_obj
+        });
+        
+        info!("应用低延迟触控设置");
+        
+        let response = self.client
+            .post(format!("{}/session/{}/appium/settings", self.base_url, sid))
+            .json(&settings)
+            .send()
+            .await?;
+        
+        if response.status().is_success() {
+            info!("低延迟设置应用成功");
+        } else {
+            warn!("低延迟设置应用失败: {}", response.status());
+        }
+        
+        Ok(())
+    }
+
     pub async fn update_settings(&self, quality: u8, framerate: u8) -> AppResult<()> {
         let sid = self.get_session_id().await;
         self.update_settings_for_session(&sid, quality, framerate, None).await
@@ -161,16 +201,16 @@ impl WdaClient {
             "mjpegServerFramerate": framerate,
             "mjpegScalingFactor": final_scale,
             "screenshotQuality": 3,
-            "snapshotMaxDepth": 50,
-            "waitForIdleTimeout": 0, // 设置为 0 以禁用 WDA 内部的等待空闲机制，极致降低延迟
-            "animationCoolOffTimeout": 0
+            "snapshotMaxDepth": 10,  // 降低快照深度以提升性能
+            "waitForIdleTimeout": 0, // 禁用等待空闲，极致降低延迟
+            "animationCoolOffTimeout": 0  // 禁用动画冷却
         });
         
         let settings = json!({
             "settings": settings_obj
         });
         
-        info!("应用 WDA 设置 - 质量:{:.0}%, 帧率:{}fps, 缩放:{:.0}%", quality, framerate, final_scale);
+        info!("应用 WDA 设置 - 质量:{:.0}%, 帧率:{}fps, 缩放:{:.0}%, 低延迟模式:ON", quality, framerate, final_scale);
         
         let response = self.client
             .post(format!("{}/session/{}/appium/settings", self.base_url, sid))
