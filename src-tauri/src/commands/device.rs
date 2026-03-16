@@ -35,7 +35,7 @@ pub async fn update_video_settings_with_scale(
     scale: f32
 ) -> AppResult<()> {
     info!("更新视频设置: Quality={}, Framerate={}, Scale={}%", 
-        quality, framerate, (scale * 100.0) as u8);
+        quality, framerate, scale as u8);
     crate::video::config::set_video_fps(framerate as u32);
     wda.update_settings_with_scale(quality, framerate, scale).await
 }

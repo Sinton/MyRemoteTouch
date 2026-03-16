@@ -55,17 +55,21 @@ impl HealthStats {
     }
 }
 
+use crate::services::device::DeviceManager;
+
 /// 健康检查服务
 pub struct HealthService {
     wda_client: Arc<WdaClient>,
+    device_manager: Arc<DeviceManager>,
     config: HealthConfig,
     stats: Arc<tokio::sync::RwLock<HealthStats>>,
 }
 
 impl HealthService {
-    pub fn new(wda_client: Arc<WdaClient>, config: HealthConfig) -> Self {
+    pub fn new(wda_client: Arc<WdaClient>, device_manager: Arc<DeviceManager>, config: HealthConfig) -> Self {
         Self {
             wda_client,
+            device_manager,
             config,
             stats: Arc::new(tokio::sync::RwLock::new(HealthStats::new())),
         }
@@ -119,6 +123,10 @@ impl HealthService {
 
     /// 启动健康检查服务（带重试机制）
     pub async fn start(self, token: CancellationToken) {
+        info!("健康检查服务正在等待设备扫描就绪...");
+        self.device_manager.wait_for_ready().await;
+        info!("设备已就绪，开始执行定期健康检查");
+
         let mut interval = tokio::time::interval(self.config.check_interval());
         let max_retries = 3;
         

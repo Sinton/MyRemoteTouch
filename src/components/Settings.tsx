@@ -9,7 +9,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
   const {
-    theme, setTheme, resetTheme,
+    theme, setTheme, resetSettings,
     videoQuality, setVideoQuality,
     videoFramerate, setVideoFramerate,
     videoScale, setVideoScale,
@@ -164,11 +164,11 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">清晰度采样</span>
                   <div className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.05] text-[11px] font-bold text-white/80 select-none">
-                    {Math.round(videoScale * 100)}%
+                    {videoScale}%
                   </div>
                 </div>
                 <input
-                  type="range" min="0.1" max="1.0" step="0.05"
+                  type="range" min="10" max="100" step="5"
                   value={videoScale}
                   onChange={(e) => setVideoScale(Number(e.target.value))}
                   onMouseUp={handleVideoSettingsChange}
@@ -361,7 +361,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                     setConfirmReset(true);
                     return;
                   }
-                  resetTheme();
+                  resetSettings();
                   setConfirmReset(false);
                 }}
                 className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 cursor-pointer border truncate

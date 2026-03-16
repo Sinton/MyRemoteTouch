@@ -22,6 +22,7 @@ pub struct WdaStatus {
 
 pub struct WdaClient {
     client: reqwest::Client,
+    dedicated_client: reqwest::Client, // 专用客户端，用于短平快的操作（如点击）
     session_id: Arc<RwLock<Option<Arc<String>>>>,
     pub(crate) base_url: String,  // 允许在 crate 内访问
 }
@@ -40,8 +41,20 @@ impl WdaClient {
             .build()
             .expect("Failed to build reqwest client");
 
+        // 专用客户端：禁用连接池，设置极短超时
+        let dedicated_client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3)) // 3秒强制超时
+            .connect_timeout(std::time::Duration::from_secs(2))
+            .tcp_nodelay(true)
+            .pool_max_idle_per_host(0) // 禁用连接复用，避免拥塞
+            .http1_only()
+            .no_proxy()
+            .build()
+            .expect("Failed to build dedicated reqwest client");
+
         Self {
             client,
+            dedicated_client,
             session_id: Arc::new(RwLock::new(None)),
             base_url: base_url.to_string(),
         }
@@ -49,6 +62,10 @@ impl WdaClient {
 
     pub fn get_client(&self) -> &reqwest::Client {
         &self.client
+    }
+
+    pub fn get_dedicated_client(&self) -> &reqwest::Client {
+        &self.dedicated_client
     }
 
     pub async fn get_session_id(&self) -> Arc<String> {
@@ -135,27 +152,25 @@ impl WdaClient {
 
     async fn update_settings_for_session(&self, sid: &str, quality: u8, framerate: u8, scale: Option<f32>) -> AppResult<()> {
         // 确定最终的缩放因子
-        let final_scale = scale.unwrap_or(1.0);
+        let final_scale = scale.unwrap_or(100.0);
         
         let settings_obj = serde_json::json!({
-            "waitForQuiescence": false,
-            "waitForIdle": false,
-            "animationCoolOffTimeout": 0,
             "shouldUseCompactResponses": true,
             "elementResponseAttributes": "type,label",
             "mjpegServerScreenshotQuality": quality,
             "mjpegServerFramerate": framerate,
-            "mjpegScaleFactor": final_scale,
-            "screenshotQuality": 1,
-            "snapshotMaxDepth": 50
+            "mjpegScalingFactor": final_scale,
+            "screenshotQuality": 3,
+            "snapshotMaxDepth": 50,
+            "waitForIdleTimeout": 0, // 设置为 0 以禁用 WDA 内部的等待空闲机制，极致降低延迟
+            "animationCoolOffTimeout": 0
         });
         
         let settings = json!({
             "settings": settings_obj
         });
         
-        info!("应用 WDA 设置 - 质量:{}, 帧率:{}, 缩放:{:.0}%", 
-            quality, framerate, final_scale * 100.0);
+        info!("应用 WDA 设置 - 质量:{:.0}%, 帧率:{}fps, 缩放:{:.0}%", quality, framerate, final_scale);
         
         let response = self.client
             .post(format!("{}/session/{}/appium/settings", self.base_url, sid))

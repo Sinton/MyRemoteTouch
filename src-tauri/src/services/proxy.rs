@@ -181,9 +181,15 @@ impl ProxyManager {
                                     // 打印当前设备管理器中的设备数量
                                     let count = device_manager.device_count().await;
                                     info!("DeviceManager 中现有 {} 个设备", count);
+
+                                    // 触发就绪信号，通知健康检查等服务可以开始了
+                                    device_manager.signal_ready();
+                                    info!("已发送设备就绪信号");
                                 }
                                 Err(e) => {
                                     error!("获取设备列表失败: {:?}", e);
+                                    // 即使失败也尝试发送信号，避免下游服务无限期等待
+                                    device_manager.signal_ready();
                                 }
                             }
 

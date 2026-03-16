@@ -70,6 +70,7 @@ fn main() {
             // 启动健康检查服务
             let health_service = HealthService::new(
                 Arc::clone(setup_state.wda_client()),
+                Arc::clone(setup_state.device_manager()),
                 config.health.clone(),
             );
             let health_token = setup_state.cancel_token().clone();

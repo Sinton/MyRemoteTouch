@@ -81,7 +81,7 @@ pub async fn send_touch_actions(wda: tauri::State<'_, Arc<WdaClient>>, actions: 
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
         
-        match wda.get_client().post(&url).json(&w3c_body).send().await {
+        match wda.get_dedicated_client().post(&url).json(&w3c_body).send().await {
             Ok(response) => {
                 let status = response.status();
                 if status.is_success() {
@@ -161,7 +161,7 @@ pub async fn send_tap(wda: tauri::State<'_, Arc<WdaClient>>, x: f64, y: f64) -> 
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
         
-        match wda.get_client().post(&url).json(&w3c_body).send().await {
+        match wda.get_dedicated_client().post(&url).json(&w3c_body).send().await {
             Ok(response) => {
                 let status = response.status();
                 if status.is_success() {

@@ -18,7 +18,7 @@ interface AppState {
   // Theme State
   theme: AppTheme;
   setTheme: (theme: Partial<AppTheme>) => void;
-  resetTheme: () => void;
+  resetSettings: () => void;
 
   // Connection State
   isConnecting: boolean;
@@ -35,7 +35,7 @@ interface AppState {
   setVideoScale: (s: number) => void;
   streamMode: 'proxy' | 'direct';
   setStreamMode: (mode: 'proxy' | 'direct') => void;
-  
+
   // Low Latency Mode (IMG tag)
   lowLatencyMode: boolean;
   setLowLatencyMode: (enabled: boolean) => void;
@@ -60,6 +60,13 @@ const defaultTheme: AppTheme = {
   blurAmount: 60,
 };
 
+const defaultVideoSettings = {
+  videoQuality: 60,
+  videoFramerate: 30,
+  videoScale: 100,
+  lowLatencyMode: true,
+};
+
 /**
  * useAppStore - The single source of truth for the application.
  * Powered by Zustand with persistence.
@@ -69,9 +76,13 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       // Initial Theme
       theme: defaultTheme,
-      setTheme: (newTheme) => 
+      setTheme: (newTheme) =>
         set((state) => ({ theme: { ...state.theme, ...newTheme } })),
-      resetTheme: () => set({ theme: defaultTheme }),
+      resetSettings: () => set({
+        theme: defaultTheme,
+        ...defaultVideoSettings,
+        isDeveloperMode: false,
+      }),
 
       // UI/Device Status
       isConnecting: true,
@@ -80,11 +91,11 @@ export const useAppStore = create<AppState>()(
       setResolution: (res) => set({ lastConnectedResolution: res }),
 
       // Video Settings
-      videoQuality: 100, // 0-100
+      videoQuality: defaultVideoSettings.videoQuality,
       setVideoQuality: (q) => set({ videoQuality: q }),
-      videoFramerate: 60, // 10-60
+      videoFramerate: defaultVideoSettings.videoFramerate,
       setVideoFramerate: (f) => set({ videoFramerate: f }),
-      videoScale: 0.65, // 0.1-1.0 (default 65%)
+      videoScale: defaultVideoSettings.videoScale,
       setVideoScale: (s) => set({ videoScale: s }),
       streamMode: 'proxy', // Force proxy mode (direct mode has CORS issues)
       setStreamMode: (mode) => {
@@ -95,9 +106,9 @@ export const useAppStore = create<AppState>()(
         }
         set({ streamMode: mode });
       },
-      
+
       // Low Latency Mode
-      lowLatencyMode: false,
+      lowLatencyMode: defaultVideoSettings.lowLatencyMode,
       setLowLatencyMode: (enabled) => set({ lowLatencyMode: enabled }),
 
       // Developer Mode
@@ -110,7 +121,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'my-remote-touch-storage',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         theme: state.theme,
         videoQuality: state.videoQuality,
         videoFramerate: state.videoFramerate,

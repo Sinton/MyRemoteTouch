@@ -52,6 +52,7 @@ impl Device {
 /// 设备管理器
 pub struct DeviceManager {
     devices: RwLock<Vec<Device>>,
+    ready_signal: tokio::sync::Notify,
 }
 
 #[allow(dead_code)]
@@ -59,7 +60,18 @@ impl DeviceManager {
     pub fn new() -> Self {
         Self {
             devices: RwLock::new(Vec::new()),
+            ready_signal: tokio::sync::Notify::new(),
         }
+    }
+
+    /// 等待第一轮设备扫描完成
+    pub async fn wait_for_ready(&self) {
+        self.ready_signal.notified().await;
+    }
+
+    /// 发送扫描完成信号
+    pub fn signal_ready(&self) {
+        self.ready_signal.notify_waiters();
     }
 
     /// 添加设备
