@@ -18,6 +18,16 @@ export const DeviceService = {
     return await invoke("update_video_settings_with_scale", { quality, framerate, scale });
   },
 
+  // Diagnostics
+  async diagnoseWdaConnection() {
+    return await invoke<{
+      wda_reachable: boolean;
+      session_id: string;
+      session_valid: boolean;
+      error_message?: string;
+    }>("diagnose_wda_connection");
+  },
+
   // Touch Controls
   async sendTap(x: number, y: number) {
     return await invoke("send_tap", { x, y });

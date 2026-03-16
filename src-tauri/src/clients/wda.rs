@@ -1,7 +1,9 @@
 use serde_json::json;
-use std::sync::Mutex;
+use std::sync::Arc;
+use parking_lot::RwLock;
 use serde::Deserialize;
 use crate::error::{AppResult, AppError};
+use tracing::{info, warn};
 
 #[derive(Deserialize, Debug)]
 pub struct WdaResponse<T> {
@@ -20,22 +22,22 @@ pub struct WdaStatus {
 
 pub struct WdaClient {
     client: reqwest::Client,
-    session_id: Mutex<Option<String>>,
+    session_id: Arc<RwLock<Option<Arc<String>>>>,
     base_url: String,
 }
 
 impl WdaClient {
-    pub fn new(base_url: &str) -> Self {
+    pub fn new(base_url: &str, timeout: std::time::Duration, pool_idle_timeout: std::time::Duration) -> Self {
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(12))
+            .timeout(timeout)
             .tcp_nodelay(true)
-            .pool_idle_timeout(std::time::Duration::from_secs(120))
+            .pool_idle_timeout(pool_idle_timeout)
             .build()
             .expect("Failed to build reqwest client");
 
         Self {
             client,
-            session_id: Mutex::new(None),
+            session_id: Arc::new(RwLock::new(None)),
             base_url: base_url.to_string(),
         }
     }
@@ -44,31 +46,37 @@ impl WdaClient {
         &self.client
     }
 
-    pub async fn get_session_id(&self) -> String {
+    pub async fn get_session_id(&self) -> Arc<String> {
         {
-            let lock = self.session_id.lock().unwrap();
+            let lock = self.session_id.read();
             if let Some(id) = &*lock {
-                if !id.is_empty() && id != "any" {
-                    return id.clone();
+                if !id.is_empty() && id.as_str() != "any" {
+                    return Arc::clone(id);
                 }
             }
         }
 
         match self.try_recover_or_create_session().await {
             Ok(id) => {
-                self.set_session(id.clone()).await;
-                id
+                let arc_id = Arc::new(id);
+                self.set_session(Arc::clone(&arc_id)).await;
+                arc_id
             }
             Err(e) => {
-                eprintln!(">>> [WDA] Session 恢复/创建失败: {:?}", e);
-                "any".to_string()
+                warn!("Session 恢复/创建失败: {}", e);
+                Arc::new("any".to_string())
             }
         }
     }
 
     async fn try_recover_or_create_session(&self) -> AppResult<String> {
         // 尝试从状态接口恢复
-        let res = self.client.get(format!("{}/status", self.base_url)).send().await?;
+        let res = self.client
+            .get(format!("{}/status", self.base_url))
+            .send()
+            .await
+            .map_err(|e| AppError::WdaConnection(format!("无法连接到 WDA: {}", e)))?;
+        
         if let Ok(status) = res.json::<WdaStatus>().await {
             let sid = status.session_id
                 .or_else(|| {
@@ -79,30 +87,34 @@ impl WdaClient {
                 });
             if let Some(id) = sid {
                 if !id.is_empty() && id != "null" {
+                    info!("恢复已有 WDA Session: {}", id);
                     return Ok(id);
                 }
             }
         }
 
         // 创建新 Session
-        println!(">>> [WDA] 正在重建物理 Session (极速模式)...");
+        info!("正在创建新 WDA Session...");
         let caps = json!({ "capabilities": { "alwaysMatch": {} } });
-        let res = self.client.post(format!("{}/session", self.base_url))
+        let res = self.client
+            .post(format!("{}/session", self.base_url))
             .json(&caps)
             .send()
-            .await?;
+            .await
+            .map_err(|e| AppError::WdaSession(format!("创建 Session 失败: {}", e)))?;
         
         let body = res.json::<serde_json::Value>().await?;
         let sid = body["sessionId"]
             .as_str()
             .or_else(|| body["value"]["sessionId"].as_str())
-            .ok_or_else(|| AppError::Wda("无法在响应中找到 sessionId".to_string()))?;
+            .ok_or_else(|| AppError::WdaSession("响应中未找到 sessionId".to_string()))?;
         
+        info!("新 WDA Session 创建成功: {}", sid);
         Ok(sid.to_string())
     }
 
-    async fn set_session(&self, id: String) {
-        let mut lock = self.session_id.lock().unwrap();
+    async fn set_session(&self, id: Arc<String>) {
+        let mut lock = self.session_id.write();
         *lock = Some(id);
     }
 
@@ -137,7 +149,7 @@ impl WdaClient {
             "settings": settings_obj
         });
         
-        println!(">>> [WDA] 应用设置 - 质量:{}, 帧率:{}, 缩放:{:.0}%", 
+        info!("应用 WDA 设置 - 质量:{}, 帧率:{}, 缩放:{:.0}%", 
             quality, framerate, final_scale * 100.0);
         
         let response = self.client
@@ -147,9 +159,9 @@ impl WdaClient {
             .await?;
         
         if response.status().is_success() {
-            println!(">>> [WDA] ✓ 设置应用成功");
+            info!("WDA 设置应用成功");
         } else {
-            eprintln!(">>> [WDA] ✗ 设置应用失败: {}", response.status());
+            warn!("WDA 设置应用失败: {}", response.status());
         }
         
         Ok(())
@@ -159,16 +171,23 @@ impl WdaClient {
         format!("{}{}", self.base_url, path)
     }
 
-    pub async fn check_health(&self) -> bool {
-        match self.client.get(format!("{}/status", self.base_url)).send().await {
-            Ok(res) => res.status().is_success(),
-            Err(_) => false,
+    pub async fn check_health(&self) -> AppResult<()> {
+        let response = self.client
+            .get(format!("{}/status", self.base_url))
+            .send()
+            .await
+            .map_err(|e| AppError::HealthCheck(format!("请求失败: {}", e)))?;
+        
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(AppError::HealthCheck(format!("状态码: {}", response.status())))
         }
     }
 
     pub async fn get_current_settings(&self) -> AppResult<serde_json::Value> {
         let sid = self.get_session_id().await;
-        let url = format!("{}/session/{}/appium/settings", self.base_url, sid);
+        let url = format!("{}/session/{}/appium/settings", self.base_url, sid.as_str());
         let res = self.client.get(&url).send().await?;
         let body = res.json::<serde_json::Value>().await?;
         Ok(body)

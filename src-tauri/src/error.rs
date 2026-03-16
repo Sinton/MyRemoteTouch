@@ -6,11 +6,20 @@ pub enum AppError {
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
 
+    #[error("WDA connection failed: {0}")]
+    WdaConnection(String),
+
     #[error("WDA error: {0}")]
     Wda(String),
 
+    #[error("WDA session error: {0}")]
+    WdaSession(String),
+
     #[error("Device not found")]
     DeviceNotFound,
+
+    #[error("Device proxy error: {0}")]
+    ProxyError(String),
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
@@ -23,6 +32,12 @@ pub enum AppError {
     
     #[error("Video stream error: {0}")]
     VideoStream(String),
+
+    #[error("Configuration error: {0}")]
+    Config(String),
+
+    #[error("Health check failed: {0}")]
+    HealthCheck(String),
 }
 
 impl Serialize for AppError {

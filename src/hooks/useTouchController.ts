@@ -1,6 +1,7 @@
 import React, { useRef, useState, PointerEvent } from 'react';
 import { Point, TouchPoint, WindowSize } from '../types/global';
 import { DeviceService } from '../services/deviceService';
+import { TouchDebugger } from '../utils/touchDebug';
 
 /**
  * Hook to handle touch inputs, coordinate mapping, and command dispatching.
@@ -62,7 +63,11 @@ export const useTouchController = (
   };
 
   const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
-    if (e.button !== 0 || !(window as any).__TAURI__) return;
+    if (e.button !== 0 || !(window as any).__TAURI__) {
+      TouchDebugger.log('PointerDown ignored', { button: e.button, hasTauri: !!(window as any).__TAURI__ });
+      return;
+    }
+    
     (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
     
     isDraggingRef.current = true;
@@ -80,6 +85,12 @@ export const useTouchController = (
     
     const pos = getCoord(e.clientX, e.clientY);
     mouseDownPos.current = { ...pos, time: Date.now() };
+    
+    TouchDebugger.log('PointerDown', { 
+      device: pos, 
+      client: { x: e.clientX, y: e.clientY },
+      deviceSize 
+    });
     
     samplePointer(e.clientX, e.clientY);
     
@@ -108,7 +119,10 @@ export const useTouchController = (
   };
 
   const onPointerUp = async (e: PointerEvent<HTMLCanvasElement>) => {
-    if (!isDraggingRef.current || !(window as any).__TAURI__) return;
+    if (!isDraggingRef.current || !(window as any).__TAURI__) {
+      TouchDebugger.log('PointerUp ignored', { isDragging: isDraggingRef.current, hasTauri: !!(window as any).__TAURI__ });
+      return;
+    }
     isDraggingRef.current = false;
     
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
@@ -117,7 +131,10 @@ export const useTouchController = (
     samplePointer(e.clientX, e.clientY);
     
     const trajectory = trajectoryRef.current;
-    if (trajectory.length === 0 || !mouseDownPos.current) return;
+    if (trajectory.length === 0 || !mouseDownPos.current) {
+      TouchDebugger.error('No trajectory data', { trajectoryLength: trajectory.length, hasMouseDown: !!mouseDownPos.current });
+      return;
+    }
     
     const duration = Date.now() - mouseDownPos.current.time;
     const startPoint = trajectory[0];
@@ -126,13 +143,26 @@ export const useTouchController = (
     const dy = endPoint.y - startPoint.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
+    TouchDebugger.log('PointerUp', { 
+      duration, 
+      distance, 
+      trajectoryLength: trajectory.length,
+      start: startPoint,
+      end: endPoint
+    });
+
     try {
       if (distance < 5 && duration < 300) {
+        TouchDebugger.log('Sending TAP', { x: startPoint.x, y: startPoint.y });
         await DeviceService.sendTap(startPoint.x, startPoint.y);
+        TouchDebugger.log('TAP sent successfully');
       } else {
+        TouchDebugger.log('Sending SWIPE', { points: trajectory.length });
         await DeviceService.sendTouchActions(trajectory);
+        TouchDebugger.log('SWIPE sent successfully');
       }
     } catch (err) {
+      TouchDebugger.error("Touch action failed", err);
       console.error("Touch action failed:", err);
     }
     

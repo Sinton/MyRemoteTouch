@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import Toolbar from './Toolbar';
 import PhoneScreen from './PhoneScreen';
 import Settings from './Settings';
+import { useAppStore } from '../store/useAppStore';
 import { DeviceService } from '../services/deviceService';
 
 type ToolbarPosition = 'top' | 'bottom' | 'left' | 'right';
 
 const Phone: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
-  const [toolbarPos, setToolbarPos] = useState<ToolbarPosition>('bottom');
+  const { toolbarPosition: toolbarPos, setToolbarPosition: setToolbarPos } = useAppStore();
   const [isDragging, setIsDragging] = useState(false);
   const [fps, setFps] = useState(0);
   const [bitrate, setBitrate] = useState(0);

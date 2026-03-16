@@ -13,7 +13,8 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
     videoQuality, setVideoQuality, 
     videoFramerate, setVideoFramerate, 
     videoScale, setVideoScale, 
-    lowLatencyMode, setLowLatencyMode 
+    lowLatencyMode, setLowLatencyMode,
+    isDeveloperMode, setIsDeveloperMode
   } = useAppStore();
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [checkingUpdate, setCheckingUpdate] = React.useState(false);
@@ -317,6 +318,20 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                   <svg className="w-3 h-3 text-white/20 group-hover:text-[#0A84FF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </div>
               </a>
+
+              {/* Developer Mode Toggle */}
+              <div className="flex items-center justify-between group pt-2 border-t border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">开发者模式</span>
+                  <span className="text-[9px] text-white/20 font-medium">开启后显示调试面板</span>
+                </div>
+                <button 
+                  onClick={() => setIsDeveloperMode(!isDeveloperMode)}
+                  className={`w-9 h-5 rounded-full relative transition-all duration-300 cursor-pointer shadow-inner ${isDeveloperMode ? 'bg-[#0A84FF]' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${isDeveloperMode ? 'left-5' : 'left-1'}`} />
+                </button>
+              </div>
             </div>
           </section>
 

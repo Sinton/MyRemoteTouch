@@ -3,6 +3,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::broadcast;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
+use tracing::info;
 
 use std::sync::atomic::Ordering;
 use crate::video::StreamingState;
@@ -101,7 +102,7 @@ impl MjpegProvider {
                 }
             }
             
-            println!(">>> [MJPEG] 流结束，共接收 {} 帧", frame_count);
+            info!("MJPEG 流结束，共接收 {} 帧", frame_count);
         }
     }
 }

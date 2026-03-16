@@ -39,6 +39,14 @@ interface AppState {
   // Low Latency Mode (IMG tag)
   lowLatencyMode: boolean;
   setLowLatencyMode: (enabled: boolean) => void;
+
+  // Developer Mode
+  isDeveloperMode: boolean;
+  setIsDeveloperMode: (enabled: boolean) => void;
+  isTouchDebugOpen: boolean;
+  setIsTouchDebugOpen: (enabled: boolean) => void;
+  toolbarPosition: 'top' | 'bottom' | 'left' | 'right';
+  setToolbarPosition: (pos: 'top' | 'bottom' | 'left' | 'right') => void;
 }
 
 const defaultTheme: AppTheme = {
@@ -91,6 +99,14 @@ export const useAppStore = create<AppState>()(
       // Low Latency Mode
       lowLatencyMode: false,
       setLowLatencyMode: (enabled) => set({ lowLatencyMode: enabled }),
+
+      // Developer Mode
+      isDeveloperMode: false,
+      setIsDeveloperMode: (enabled) => set({ isDeveloperMode: enabled }),
+      isTouchDebugOpen: false,
+      setIsTouchDebugOpen: (enabled) => set({ isTouchDebugOpen: enabled }),
+      toolbarPosition: 'bottom',
+      setToolbarPosition: (pos) => set({ toolbarPosition: pos }),
     }),
     {
       name: 'my-remote-touch-storage',
@@ -100,6 +116,8 @@ export const useAppStore = create<AppState>()(
         videoFramerate: state.videoFramerate,
         videoScale: state.videoScale,
         lowLatencyMode: state.lowLatencyMode,
+        isDeveloperMode: state.isDeveloperMode,
+        toolbarPosition: state.toolbarPosition,
         // Don't persist streamMode to always start with proxy
         // streamMode: state.streamMode
       }),

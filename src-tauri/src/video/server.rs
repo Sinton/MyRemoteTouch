@@ -5,6 +5,7 @@ use futures_util::{StreamExt, SinkExt};
 use tokio::sync::broadcast;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
+use tracing::{info, warn, debug};
 
 /// WsVideoServer - 负责将视频帧通过 WebSocket 分发给前端
 pub struct WsVideoServer {
@@ -30,7 +31,7 @@ impl WsVideoServer {
                         let client_token = token.clone();
                         tokio::spawn(async move {
                             if let Ok(ws_stream) = accept_async(stream).await {
-                                println!(">>> [Video-Server] 客户端已连接 WebSocket");
+                                info!("视频客户端已连接 WebSocket");
                                 let (mut ws_write, _) = ws_stream.split();
                                 let mut rx = tx_sub.subscribe();
                                 let mut frame_count = 0;
@@ -43,25 +44,21 @@ impl WsVideoServer {
                                                 Ok(frame) => {
                                                     frame_count += 1;
                                                     if frame_count % 100 == 0 {
-                                                        println!(">>> [Video-Server] 已发送 {} 帧 (丢帧: {})", frame_count, lagged_count);
+                                                        debug!("已发送 {} 帧 (丢帧: {})", frame_count, lagged_count);
                                                     }
                                                     
-                                                    // 非阻塞发送：如果 WebSocket 发送缓冲区满，跳过此帧
                                                     if let Err(e) = ws_write.send(Message::Binary(frame.to_vec().into())).await {
-                                                        // 只有在非正常断开时才打印错误
-                                                        // 10053 (ConnectionReset) 和 AlreadyClosed 是切换模式时的正常现象
                                                         let err_str = e.to_string();
                                                         if !err_str.contains("10053") && !err_str.contains("AlreadyClosed") {
-                                                            println!(">>> [Video-Server] 发送失败: {}", e);
+                                                            warn!("视频发送失败: {}", e);
                                                         }
                                                         break;
                                                     }
                                                 }
                                                 Err(broadcast::error::RecvError::Lagged(n)) => {
-                                                    // 接收端太慢，跳过旧帧，直接获取最新帧
                                                     lagged_count += n;
                                                     if lagged_count % 10 == 0 {
-                                                        println!(">>> [Video-Server] ⚠️ 累计丢帧: {} (降低延迟)", lagged_count);
+                                                        debug!("累计丢帧: {} (降低延迟)", lagged_count);
                                                     }
                                                     continue;
                                                 }
@@ -70,7 +67,7 @@ impl WsVideoServer {
                                         }
                                     }
                                 }
-                                println!(">>> [Video-Server] 客户端断开 (总帧数: {}, 丢帧: {})", frame_count, lagged_count);
+                                info!("视频客户端断开 (总帧数: {}, 丢帧: {})", frame_count, lagged_count);
                             }
                         });
                     }
