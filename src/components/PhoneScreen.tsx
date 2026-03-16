@@ -52,6 +52,7 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({
   const { 
     tapMarker, 
     mousePos,
+    isProcessing,  // 获取处理状态
     onPointerDown, 
     onPointerMove, 
     onPointerUp, 
@@ -242,6 +243,14 @@ const PhoneScreen: React.FC<PhoneScreenProps> = ({
                  top: tapMarker.y,
                  transform: 'translate(-50%, -50%)' // Force centering regardless of keyframes
                }} />
+        )}
+        
+        {/* Processing indicator */}
+        {isProcessing && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-full text-sm pointer-events-none z-[1001] flex items-center gap-2">
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>处理中...</span>
+          </div>
         )}
       </div>
 

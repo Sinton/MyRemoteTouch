@@ -51,11 +51,11 @@ interface AppState {
 
 const defaultTheme: AppTheme = {
   backgroundMode: 'liquid',
-  blob1Color: '#7000FF',
-  blob2Color: '#0070FF',
-  blob3Color: '#FF0060',
+  blob1Color: '#d1d1d1',
+  blob2Color: '#667585',
+  blob3Color: '#74706d',
   solidColor: '#292929',
-  gradientStart: '#1a1a25',
+  gradientStart: '#bdbdbd',
   gradientEnd: '#050505',
   blurAmount: 60,
 };

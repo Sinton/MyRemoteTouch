@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TouchDebugger } from '../utils/touchDebug';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../store/useAppStore';
@@ -14,13 +14,33 @@ export const TouchDebugPanel: React.FC = () => {
   const { isDeveloperMode, isTouchDebugOpen, setIsTouchDebugOpen, toolbarPosition } = useAppStore();
   const [logs, setLogs] = useState<string[]>([]);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 监控手动滚动，判断是否开启自动滚动
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      // 如果距离底部小于 50px，则认为用户希望保持自动滚动
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setIsAutoScrollEnabled(isAtBottom);
+    }
+  };
+
+  // 自动滚动到底部
+  useEffect(() => {
+    if (isTouchDebugOpen && isAutoScrollEnabled && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [logs, isTouchDebugOpen, isAutoScrollEnabled]);
 
   useEffect(() => {
     if (!isTouchDebugOpen) return;
     
+    // 缩短轮询间隔至 200ms 以实现更好的实时感
     const interval = setInterval(() => {
       setLogs(TouchDebugger.getLogs());
-    }, 500);
+    }, 200);
 
     return () => clearInterval(interval);
   }, [isTouchDebugOpen]);
@@ -105,8 +125,12 @@ export const TouchDebugPanel: React.FC = () => {
           </button>
         </div>
         
-        {/* 日志内容区域 - 字体缩小 */}
-        <div className="flex-1 overflow-y-auto p-6 font-mono text-[11px] space-y-1.5 custom-scrollbar-wrapper bg-black/10">
+        {/* 日志内容区域 - 增加滚动监听和文本选择支持 */}
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-6 font-mono text-[11px] space-y-1.5 custom-scrollbar-wrapper bg-black/10 select-text selection:bg-amber-500/30 selection:text-white"
+        >
           {logs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-white/10 gap-8">
               <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +142,7 @@ export const TouchDebugPanel: React.FC = () => {
             logs.map((log, index) => (
               <div
                 key={index}
-                className={`p-2.5 rounded-lg border border-white/5 leading-relaxed break-all animate-[slide-in-left_0.4s_ease-out]
+                className={`p-2.5 rounded-lg border border-white/5 leading-relaxed break-all animate-[slide-in-left_0.4s_ease-out] select-text
                   ${log.includes('[ERROR]') ? 'bg-red-500/10 text-red-300/80 border-red-500/20' : 
                     log.includes('成功') || log.includes('正常') ? 'bg-emerald-500/10 text-emerald-300/80 border-emerald-500/20' : 
                     'bg-white/5 text-emerald-400/90'}`}

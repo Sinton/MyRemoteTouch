@@ -23,15 +23,20 @@ pub struct WdaStatus {
 pub struct WdaClient {
     client: reqwest::Client,
     session_id: Arc<RwLock<Option<Arc<String>>>>,
-    base_url: String,
+    pub(crate) base_url: String,  // 允许在 crate 内访问
 }
 
 impl WdaClient {
     pub fn new(base_url: &str, timeout: std::time::Duration, pool_idle_timeout: std::time::Duration) -> Self {
         let client = reqwest::Client::builder()
             .timeout(timeout)
+            .connect_timeout(std::time::Duration::from_secs(5))  // 连接超时
             .tcp_nodelay(true)
+            .tcp_keepalive(Some(std::time::Duration::from_secs(60)))  // TCP keep-alive
             .pool_idle_timeout(pool_idle_timeout)
+            .pool_max_idle_per_host(10)  // 每个 host 保持 10 个空闲连接
+            .http1_only()  // 强制使用 HTTP/1.1，更稳定
+            .no_proxy()  // 禁用代理，直接连接本地端口
             .build()
             .expect("Failed to build reqwest client");
 

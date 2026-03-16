@@ -8,7 +8,8 @@ export class TouchDebugger {
   private static maxLogs = 50;
 
   static log(message: string, data?: any) {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    const now = new Date();
+    const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
     const logMessage = `[${timestamp}] ${message}`;
     
     console.log(logMessage, data || '');
@@ -20,7 +21,8 @@ export class TouchDebugger {
   }
 
   static error(message: string, error?: any) {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    const now = new Date();
+    const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
     const logMessage = `[${timestamp}] [ERROR] ${message}`;
     
     console.error(logMessage, error || '');
@@ -32,7 +34,7 @@ export class TouchDebugger {
   }
 
   static getLogs() {
-    return this.logs;
+    return [...this.logs];
   }
 
   static clear() {

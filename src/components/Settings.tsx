@@ -8,11 +8,11 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
-  const { 
-    theme, setTheme, resetTheme, 
-    videoQuality, setVideoQuality, 
-    videoFramerate, setVideoFramerate, 
-    videoScale, setVideoScale, 
+  const {
+    theme, setTheme, resetTheme,
+    videoQuality, setVideoQuality,
+    videoFramerate, setVideoFramerate,
+    videoScale, setVideoScale,
     lowLatencyMode, setLowLatencyMode,
     isDeveloperMode, setIsDeveloperMode
   } = useAppStore();
@@ -127,7 +127,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                     {(videoQuality > 80) && <div className="w-1.5 h-1.5 bg-[#0A84FF] rounded-full shadow-[0_0_8px_rgba(10,132,255,0.5)]" />}
                   </div>
                 </div>
-                <input 
+                <input
                   type="range" min="30" max="100" step="5"
                   value={videoQuality}
                   onChange={(e) => setVideoQuality(Number(e.target.value))}
@@ -149,7 +149,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                     {videoFramerate} fps
                   </div>
                 </div>
-                <input 
+                <input
                   type="range" min="10" max="60" step="5"
                   value={videoFramerate}
                   onChange={(e) => setVideoFramerate(Number(e.target.value))}
@@ -167,7 +167,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                     {Math.round(videoScale * 100)}%
                   </div>
                 </div>
-                <input 
+                <input
                   type="range" min="0.1" max="1.0" step="0.05"
                   value={videoScale}
                   onChange={(e) => setVideoScale(Number(e.target.value))}
@@ -192,9 +192,8 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                         ${lowLatencyMode === mode.value ? 'text-white' : 'text-white/20 hover:text-white/40'}`}
                     >
                       {lowLatencyMode === mode.value && (
-                        <div className={`absolute inset-0 rounded-lg shadow-lg animate-[fade-in_0.2s_ease-out] -z-10 ${
-                          mode.value ? 'bg-amber-500 shadow-amber-500/20' : 'bg-[#0A84FF] shadow-[#0A84FF]/20'
-                        }`} />
+                        <div className={`absolute inset-0 rounded-lg shadow-lg animate-[fade-in_0.2s_ease-out] -z-10 ${mode.value ? 'bg-amber-500 shadow-amber-500/20' : 'bg-[#0A84FF] shadow-[#0A84FF]/20'
+                          }`} />
                       )}
                       {mode.label}
                     </button>
@@ -297,14 +296,14 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
 
           {/* Section: About (Card Style) */}
           <div className="flex items-center gap-2 text-[14px] text-white/40 mb-3 font-black uppercase tracking-[0.1em] px-1">
-            <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg> 关于产品
+            <svg className="w-4 h-4 text-white/20" fill="currentColor" viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg> 关于工具
           </div>
           <section className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-6 shadow-2xl backdrop-blur-3xl">
 
             <div className="space-y-6">
               <div className="flex items-center justify-between group">
                 <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">程序版本</span>
-                <span className="text-[11px] font-black text-white/30 tracking-widest leading-none">V0.1.0-BETA</span>
+                <span className="text-[11px] font-black text-white/30 tracking-widest leading-none">V0.1.0-beta</span>
               </div>
               <a
                 href="https://github.com/Sinton/MyRemoteTouch"
@@ -325,7 +324,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                   <span className="text-[13px] font-semibold text-white/50 group-hover:text-white/80 transition-colors">开发者模式</span>
                   <span className="text-[9px] text-white/20 font-medium">开启后显示调试面板</span>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsDeveloperMode(!isDeveloperMode)}
                   className={`w-9 h-5 rounded-full relative transition-all duration-300 cursor-pointer shadow-inner ${isDeveloperMode ? 'bg-[#0A84FF]' : 'bg-white/10'}`}
                 >

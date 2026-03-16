@@ -5,4 +5,4 @@
 pub mod wda;
 
 // 重新导出常用类型
-pub use wda::{WdaClient, WdaResponse, WdaStatus};
+pub use wda::{WdaClient, WdaResponse};

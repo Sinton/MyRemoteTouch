@@ -69,8 +69,8 @@ impl Default for WdaConfig {
     fn default() -> Self {
         Self {
             url: "http://127.0.0.1:8100".to_string(),
-            timeout_secs: 12,
-            pool_idle_timeout_secs: 120,
+            timeout_secs: 8,  // 减少到 8 秒，快速失败
+            pool_idle_timeout_secs: 30,  // 减少空闲超时
         }
     }
 }

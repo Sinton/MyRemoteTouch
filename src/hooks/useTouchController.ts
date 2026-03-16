@@ -12,12 +12,15 @@ export const useTouchController = (
 ) => {
   const [tapMarker, setTapMarker] = useState<Point | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
+  const [isProcessing, setIsProcessing] = useState(false);  // 添加处理状态
   
   const isDraggingRef = useRef(false);
   const trajectoryRef = useRef<TouchPoint[]>([]);
   const lastSampleTimeRef = useRef(0);
   const rafIdRef = useRef<number | null>(null);
   const mouseDownPos = useRef<TouchPoint | null>(null);
+  const lastTapTimeRef = useRef(0);  // 添加防抖
+  const pendingRequestRef = useRef(false);  // 防止并发请求
 
   /**
    * Maps client (browser) coordinates to original device coordinates.
@@ -152,16 +155,41 @@ export const useTouchController = (
     });
 
     try {
+      // 如果有请求正在处理，忽略新请求
+      if (pendingRequestRef.current) {
+        TouchDebugger.log('请求正在处理中，忽略本次操作');
+        return;
+      }
+      
+      setIsProcessing(true);  // 显示处理状态
+      
       if (distance < 5 && duration < 300) {
+        // 防抖：如果距离上次点击不到 300ms，忽略
+        const now = Date.now();
+        if (now - lastTapTimeRef.current < 300) {
+          TouchDebugger.log('TAP 被防抖忽略', { timeSinceLastTap: now - lastTapTimeRef.current });
+          setIsProcessing(false);
+          return;
+        }
+        lastTapTimeRef.current = now;
+        
         TouchDebugger.log('Sending TAP', { x: startPoint.x, y: startPoint.y });
+        pendingRequestRef.current = true;
         await DeviceService.sendTap(startPoint.x, startPoint.y);
+        pendingRequestRef.current = false;
+        setIsProcessing(false);
         TouchDebugger.log('TAP sent successfully');
       } else {
         TouchDebugger.log('Sending SWIPE', { points: trajectory.length });
+        pendingRequestRef.current = true;
         await DeviceService.sendTouchActions(trajectory);
+        pendingRequestRef.current = false;
+        setIsProcessing(false);
         TouchDebugger.log('SWIPE sent successfully');
       }
     } catch (err) {
+      pendingRequestRef.current = false;
+      setIsProcessing(false);
       TouchDebugger.error("Touch action failed", err);
       console.error("Touch action failed:", err);
     }
@@ -173,6 +201,7 @@ export const useTouchController = (
   return {
     tapMarker,
     mousePos,
+    isProcessing,  // 导出处理状态
     onPointerDown,
     onPointerMove,
     onPointerUp,
