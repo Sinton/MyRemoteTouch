@@ -27,15 +27,22 @@
 ---
 
 ## 📖 Table of Contents
+- [📖 Table of Contents](#-table-of-contents)
 - [✨ Core Features](#-core-features)
 - [🏗️ Technical Architecture](#️-technical-architecture)
+  - [Architecture Overview](#architecture-overview)
 - [🚀 Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Build and Run](#build-and-run)
 - [🛠️ Advanced: Developer Mode](#️-advanced-developer-mode)
 - [📸 Preview](#-preview)
+  - [Main Remote Interface](#main-remote-interface)
+  - [Slide-out Developer Console](#slide-out-developer-console)
 - [🗺️ Roadmap](#️-roadmap)
 - [❓ FAQ](#-faq)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
+- [❤️ Acknowledgments](#️-acknowledgments)
 
 ---
 
@@ -191,6 +198,6 @@ Distributed under the [MIT License](LICENSE).
 Thanks to these open-source projects for providing the foundation for MyRemoteTouch:
 - [Tauri](https://tauri.app/)
 - [WebDriverAgent](https://github.com/appium/WebDriverAgent)
-- [idevice](https://github.com/YueChen-C/idevice-rs)
+- [idevice](https://github.com/jkcoxson/idevice)
 
 ---
