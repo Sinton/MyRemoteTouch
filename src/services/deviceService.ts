@@ -10,6 +10,10 @@ export const DeviceService = {
     return await invoke<{ width: number; height: number }>("get_window_size");
   },
 
+  async setOrientation(orientation: string) {
+    return await invoke("set_orientation", { orientation });
+  },
+
   async updateVideoSettings(quality: number, framerate: number) {
     return await invoke("update_video_settings", { quality, framerate });
   },
