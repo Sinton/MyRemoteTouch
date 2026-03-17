@@ -93,6 +93,7 @@ fn main() {
             commands::device::update_video_settings,
             commands::device::update_video_settings_with_scale,
             commands::device::get_wda_settings,
+            commands::device::set_orientation,
             commands::device::set_video_active,
             commands::device::diagnose_wda_connection,
             // 触控操作

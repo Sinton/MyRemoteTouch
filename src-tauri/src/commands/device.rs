@@ -55,6 +55,30 @@ pub async fn get_wda_settings(wda: tauri::State<'_, Arc<WdaClient>>) -> AppResul
     Ok(settings)
 }
 
+#[tauri::command]
+pub async fn set_orientation(wda: tauri::State<'_, Arc<WdaClient>>, orientation: String) -> AppResult<()> {
+    info!("设置设备屏幕方向: {}", orientation);
+    let url = wda.format_url("/orientation");
+    
+    // WDA expects {"orientation": "LANDSCAPE"} or {"orientation": "PORTRAIT"}
+    let response = wda.get_client()
+        .post(url)
+        .json(&serde_json::json!({ "orientation": orientation.to_uppercase() }))
+        .send()
+        .await?;
+    
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_else(|_| "无法读取响应".to_string());
+        return Err(crate::error::AppError::Wda(
+            format!("设置方向失败: 状态码 {}, 响应: {}", status, error_text)
+        ));
+    }
+    
+    info!("设备屏幕方向设置成功: {}", orientation);
+    Ok(())
+}
+
 #[derive(Serialize, Debug)]
 pub struct WdaDiagnostics {
     pub wda_reachable: bool,

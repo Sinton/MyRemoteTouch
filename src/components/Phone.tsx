@@ -1,157 +1,68 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Toolbar from './Toolbar';
+import React from 'react';
 import PhoneScreen from './PhoneScreen';
-import Settings from './Settings';
 import { useAppStore } from '../store/useAppStore';
-import { DeviceService } from '../services/deviceService';
 
-type ToolbarPosition = 'top' | 'bottom' | 'left' | 'right';
+/**
+ * Phone Component - The Physical Shell
+ * Defines the bezel, notch, hardware buttons, and the viewing slot.
+ */
+interface PhoneProps {
+  deviceSize: { width: number, height: number };
+  toolbarPosition: 'top' | 'bottom' | 'left' | 'right';
+  setFps: (fps: number) => void;
+  setBitrate: (bitrate: number) => void;
+}
 
-const Phone: React.FC = () => {
-  const [showSettings, setShowSettings] = useState(false);
-  const { toolbarPosition: toolbarPos, setToolbarPosition: setToolbarPos } = useAppStore();
-  const [isDragging, setIsDragging] = useState(false);
-  const [fps, setFps] = useState(0);
-  const [bitrate, setBitrate] = useState(0);
-  const phoneRef = useRef<HTMLDivElement>(null);
-
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDragging(true);
-    e.preventDefault();
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: globalThis.MouseEvent) => {
-      if (!isDragging || !phoneRef.current) return;
-
-      const rect = phoneRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const mouseX = e.clientX;
-      const mouseY = e.clientY;
-
-      const dx = mouseX - centerX;
-      const dy = mouseY - centerY;
-
-      const absX = Math.abs(dx);
-      const absY = Math.abs(dy);
-
-      if (absX > absY * 1.2) {
-        setToolbarPos(dx > 0 ? 'right' : 'left');
-      } else if (absY > absX * 1.2) {
-        setToolbarPos(dy > 0 ? 'bottom' : 'top');
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
-
-  const [isProcessingHardware, setIsProcessingHardware] = useState(false);
-
-  const pressHome = async () => {
-    if (isProcessingHardware) return;
-    setIsProcessingHardware(true);
-    try {
-      await DeviceService.pressHome();
-    } catch (error) {
-      console.error('Home button failed:', error);
-    } finally {
-      setIsProcessingHardware(false);
-    }
-  };
-  
-  const pressVolumeUp = async () => {
-    if (isProcessingHardware) return;
-    setIsProcessingHardware(true);
-    try {
-      await DeviceService.pressVolumeUp();
-    } catch (error) {
-      console.error('Volume up failed:', error);
-    } finally {
-      setIsProcessingHardware(false);
-    }
-  };
-  
-  const pressVolumeDown = async () => {
-    if (isProcessingHardware) return;
-    setIsProcessingHardware(true);
-    try {
-      await DeviceService.pressVolumeDown();
-    } catch (error) {
-      console.error('Volume down failed:', error);
-    } finally {
-      setIsProcessingHardware(false);
-    }
-  };
-  
-  const pressMute = () => DeviceService.pressMute();
-  
-  const pressLock = async () => {
-    if (isProcessingHardware) return;
-    setIsProcessingHardware(true);
-    try {
-      await DeviceService.toggleLock();
-    } catch (error) {
-      console.error('Lock toggle failed:', error);
-    } finally {
-      setIsProcessingHardware(false);
-    }
-  };
-
-  // Helper for layout orientation classes
-  const getLayoutClasses = () => {
-    const base = "flex gap-[15px] items-center justify-center p-0 transition-all duration-400 ease-[cubic-bezier(0.18,0.89,0.32,1.28)]";
-    const posDirs: Record<ToolbarPosition, string> = {
-      top: "flex-col",
-      bottom: "flex-col-reverse",
-      left: "flex-row",
-      right: "flex-row-reverse"
-    };
-    return `${base} ${posDirs[toolbarPos]}`;
-  };
+const Phone: React.FC<PhoneProps> = ({ 
+  deviceSize, 
+  toolbarPosition,
+  setFps,
+  setBitrate
+}) => {
+  const { screenOrientation } = useAppStore();
+  const isLandscape = screenOrientation === 'landscape';
+  const isModernFullClient = deviceSize.height / deviceSize.width > 2.0;
+  const portraitWidth = Math.min(deviceSize.width, deviceSize.height);
+  const portraitHeight = Math.max(deviceSize.width, deviceSize.height);
 
   return (
-    <div 
-      className="flex justify-center items-center h-screen w-screen p-[10px] box-border" 
-      style={{ cursor: isDragging ? 'grabbing' : 'default' }}
+    <div
+      className={`relative flex flex-col bg-[#1c1c1e] rounded-[48px] p-[10px] box-border shadow-[0_0_0_2px_#3a3a3c,0_10px_40px_rgba(0,0,0,0.6)] z-10 transition-all duration-500 origin-center
+        ${isLandscape ? '-rotate-90' : 'rotate-0'}
+        ${(toolbarPosition === 'left' || toolbarPosition === 'right') ? 'h-[97vh]' : 'h-[91vh]'}`}
+      style={{
+        aspectRatio: `${portraitWidth} / ${portraitHeight}`
+      }}
     >
-      <div className={getLayoutClasses()}>
-        <Toolbar 
-          onSettingsClick={() => setShowSettings(!showSettings)} 
-          onDragStart={handleDragStart} 
-          position={toolbarPos} 
-          isDragging={isDragging}
-          onHomeClick={pressHome}
-          onVolumeUpClick={pressVolumeUp}
-          onVolumeDownClick={pressVolumeDown}
-          onMuteClick={pressMute}
-          onLockClick={pressLock}
-          isProcessingHardware={isProcessingHardware}
-          fps={fps}
-          bitrate={bitrate}
-        />
-        <div className="relative" ref={phoneRef}>
-          <PhoneScreen 
-            position={toolbarPos} 
-            setFpsState={setFps} 
-            setBitrateState={setBitrate} 
-          />
+      {/* Hardware Buttons Decoration */}
+      {isModernFullClient && (
+        <>
+          <div className="absolute top-[12%] -left-[4px] h-[25px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
+          <div className="absolute top-[18%] -left-[4px] h-[50px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
+          <div className="absolute top-[25%] -left-[4px] h-[50px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
+          <div className="absolute top-[20%] -right-[4px] h-[80px] w-[2px] bg-[#3a3a3c] rounded-[2px] z-[5]"></div>
+        </>
+      )}
+
+      {/* Notch - Overlap 2px to close gaps */}
+      {isModernFullClient && (
+        <div className="absolute top-[8px] left-1/2 -translate-x-1/2 w-[160px] h-[32px] bg-[#1c1c1e] rounded-b-[18px] z-[30] flex justify-center items-center gap-[10px]
+                        before:content-[''] before:absolute before:top-0 before:w-[4px] before:h-[4px] before:bg-[#1c1c1e] before:-left-[4px] before:[mask:radial-gradient(circle_at_0%_100%,transparent_4px,#1c1c1e_4px)]
+                        after:content-[''] after:absolute after:top-0 after:w-[4px] after:h-[4px] after:bg-[#1c1c1e] after:-right-[4px] after:[mask:radial-gradient(circle_at_100%_100%,transparent_4px,#1c1c1e_4px)]">
+          <div className="w-[40px] h-[4px] bg-[#333] rounded-[2px] -mt-[6px]"></div>
+          <div className="w-[10px] h-[10px] bg-[#050505] rounded-full relative shadow-[inset_0_0_3px_rgba(255,255,255,0.1)]
+                          after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-[4px] after:h-[4px] after:bg-[#0A84FF] after:rounded-full after:opacity-40 after:blur-[0.5px]"></div>
         </div>
+      )}
+
+      {/* Screen Viewport Slot */}
+      <div className="relative w-full h-full overflow-hidden rounded-[38px] bg-black">
+        <PhoneScreen 
+          position={toolbarPosition}
+          setFpsState={setFps}
+          setBitrateState={setBitrate}
+        />
       </div>
-      
-      <Settings visible={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 };
