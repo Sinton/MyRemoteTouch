@@ -47,6 +47,12 @@ interface AppState {
   setIsTouchDebugOpen: (enabled: boolean) => void;
   toolbarPosition: 'top' | 'bottom' | 'left' | 'right';
   setToolbarPosition: (pos: 'top' | 'bottom' | 'left' | 'right') => void;
+
+  // Media Actions
+  screenOrientation: 'portrait' | 'landscape'; // 横竖屏切换
+  setScreenOrientation: (orientation: 'portrait' | 'landscape') => void;
+  isRecording: boolean;
+  setIsRecording: (status: boolean) => void;
 }
 
 const defaultTheme: AppTheme = {
@@ -118,6 +124,12 @@ export const useAppStore = create<AppState>()(
       setIsTouchDebugOpen: (enabled) => set({ isTouchDebugOpen: enabled }),
       toolbarPosition: 'bottom',
       setToolbarPosition: (pos) => set({ toolbarPosition: pos }),
+
+      // Media Actions
+      screenOrientation: 'portrait',
+      setScreenOrientation: (orientation) => set({ screenOrientation: orientation }),
+      isRecording: false,
+      setIsRecording: (status) => set({ isRecording: status }),
     }),
     {
       name: 'my-remote-touch-storage',
@@ -129,8 +141,8 @@ export const useAppStore = create<AppState>()(
         lowLatencyMode: state.lowLatencyMode,
         isDeveloperMode: state.isDeveloperMode,
         toolbarPosition: state.toolbarPosition,
-        // Don't persist streamMode to always start with proxy
-        // streamMode: state.streamMode
+        screenOrientation: state.screenOrientation,
+        // Don't persist isRecording or streamMode
       }),
       // Migration: Force proxy mode on load
       onRehydrateStorage: () => (state) => {
