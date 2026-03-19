@@ -11,13 +11,15 @@ interface PhoneProps {
   toolbarPosition: 'top' | 'bottom' | 'left' | 'right';
   setFps: (fps: number) => void;
   setBitrate: (bitrate: number) => void;
+  children?: React.ReactNode;
 }
 
 const Phone: React.FC<PhoneProps> = ({ 
   deviceSize, 
   toolbarPosition,
   setFps,
-  setBitrate
+  setBitrate,
+  children
 }) => {
   const { screenOrientation } = useAppStore();
   const isLandscape = screenOrientation === 'landscape';
@@ -62,6 +64,7 @@ const Phone: React.FC<PhoneProps> = ({
           setFpsState={setFps}
           setBitrateState={setBitrate}
         />
+        {children}
       </div>
     </div>
   );

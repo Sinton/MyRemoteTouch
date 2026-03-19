@@ -150,20 +150,18 @@ impl WdaClient {
     }
 
     /// 应用低延迟设置（专门用于触控操作）
-    async fn apply_low_latency_settings(&self, sid: &str) -> AppResult<()> {
-        let settings_obj = serde_json::json!({
-            "shouldUseCompactResponses": true,
-            "elementResponseAttributes": "type,label",
-            "waitForIdleTimeout": 0,  // 禁用等待空闲，立即执行
-            "animationCoolOffTimeout": 0,  // 禁用动画冷却
-            "snapshotMaxDepth": 10,  // 降低快照深度
-        });
-        
+    pub async fn apply_low_latency_settings(&self, sid: &str) -> AppResult<()> {
         let settings = json!({
-            "settings": settings_obj
+            "settings": {
+                "waitForQuiescence": false,      // 不等待应用进入静止状态 (核心优化)
+                "waitForIdleTimeout": 0,         // 不等空闲
+                "animationCoolOffTimeout": 0,    // 不等动画结束
+                "snapshotTimeout": 10,           // 快照超时
+                "shouldUseCompactId": true,      // 压缩 ID
+                "shouldUseCompactResponses": true,
+                "elementResponseAttributes": "type,label,rect"
+            }
         });
-        
-        info!("应用低延迟触控设置");
         
         let response = self.client
             .post(format!("{}/session/{}/appium/settings", self.base_url, sid))
@@ -172,9 +170,9 @@ impl WdaClient {
             .await?;
         
         if response.status().is_success() {
-            info!("低延迟设置应用成功");
+            info!("低延迟补丁应用成功: waitForQuiescence=OFF");
         } else {
-            warn!("低延迟设置应用失败: {}", response.status());
+            warn!("低延迟补丁应用失败: {}", response.status());
         }
         
         Ok(())
@@ -195,13 +193,13 @@ impl WdaClient {
         let final_scale = scale.unwrap_or(100.0);
         
         let settings_obj = serde_json::json!({
+            "waitForQuiescence": false,
             "shouldUseCompactResponses": true,
-            "elementResponseAttributes": "type,label",
+            "elementResponseAttributes": "type,label,rect",
             "mjpegServerScreenshotQuality": quality,
             "mjpegServerFramerate": framerate,
             "mjpegScalingFactor": final_scale,
             "screenshotQuality": 3,
-            "snapshotMaxDepth": 10,  // 降低快照深度以提升性能
             "waitForIdleTimeout": 0, // 禁用等待空闲，极致降低延迟
             "animationCoolOffTimeout": 0  // 禁用动画冷却
         });
@@ -252,4 +250,95 @@ impl WdaClient {
         let body = res.json::<serde_json::Value>().await?;
         Ok(body)
     }
+
+    /// 查找元素 (通用方法)
+    pub async fn find_element(&self, strategy: &str, value: &str) -> AppResult<String> {
+        let sid = self.get_session_id().await;
+        let body = serde_json::json!({
+            "using": strategy,
+            "value": value
+        });
+
+        let url = format!("{}/session/{}/element", self.base_url, sid.as_str());
+        let res = self.client.post(&url).json(&body).send().await?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            return Err(AppError::Wda(format!("查找元素失败: 状态码 {}, 响应: {}", status, text)));
+        }
+
+        let body: serde_json::Value = res.json().await?;
+        
+        // WDA 可能返回 ELEMENT 或 element-6066-11e4-a52e-4f735466cecf
+        let value = &body["value"];
+        let element_id = value["ELEMENT"]
+            .as_str()
+            .or_else(|| value["element-6066-11e4-a52e-4f735466cecf"].as_str())
+            .ok_or_else(|| AppError::Wda(format!("响应中未找到有效的 Element ID: {:?}", body)))?;
+
+        Ok(element_id.to_string())
+    }
+
+    /// 通过文本内容查找元素 (使用 Predicate 匹配 label)
+    pub async fn find_element_by_label(&self, label: &str) -> AppResult<String> {
+        // 构造 Predicate String: label == 'xxx'
+        let predicate = format!("label == '{}'", label);
+        self.find_element("predicate string", &predicate).await
+    }
+
+    /// 获取元素的矩形区域 (x, y, width, height)
+    pub async fn get_element_rect(&self, element_id: &str) -> AppResult<serde_json::Value> {
+        let sid = self.get_session_id().await;
+        let url = format!("{}/session/{}/element/{}/rect", self.base_url, sid.as_str(), element_id);
+        
+        let res = self.client.get(&url).send().await?;
+        if !res.status().is_success() {
+            return Err(AppError::Wda(format!("获取元素位置失败: {}", res.status())));
+        }
+
+        let body: serde_json::Value = res.json().await?;
+        Ok(body["value"].clone())
+    }
+
+    /// 获取元素属性 (如 label, name, type)
+    pub async fn get_element_attribute(&self, element_id: &str, name: &str) -> AppResult<String> {
+        let sid = self.get_session_id().await;
+        let url = format!("{}/session/{}/element/{}/attribute/{}", self.base_url, sid.as_str(), element_id, name);
+        
+        let res = self.client.get(&url).send().await?;
+        let body: serde_json::Value = res.json().await?;
+        
+        Ok(body["value"].as_str().unwrap_or_default().to_string())
+    }
+
+    /// 获取元素的文本 Label
+    pub async fn get_element_label(&self, element_id: &str) -> AppResult<String> {
+        self.get_element_attribute(element_id, "label").await
+    }
+
+    /// 获取界面 UI 源码 (XML 结构)
+    pub async fn get_source_xml(&self) -> AppResult<String> {
+        let sid = self.get_session_id().await;
+        // 默认不带 format=json 即为 XML 格式
+        let url = format!("{}/session/{}/source", self.base_url, sid.as_str());
+        
+        let res = self.client.get(&url).send().await?;
+        let body: serde_json::Value = res.json().await?;
+        
+        // WDA 的 XML 源码通常在 value 字段中
+        let xml = body["value"].as_str().unwrap_or_default().to_string();
+        Ok(xml)
+    }
+
+    /// 获取界面 UI 源码 (JSON 结构)
+    pub async fn get_source(&self) -> AppResult<serde_json::Value> {
+        let sid = self.get_session_id().await;
+        let url = format!("{}/session/{}/source?format=json", self.base_url, sid.as_str());
+        
+        let res = self.client.get(&url).send().await?;
+        let body: serde_json::Value = res.json().await?;
+        Ok(body)
+    }
 }
+

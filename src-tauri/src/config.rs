@@ -69,7 +69,7 @@ impl Default for WdaConfig {
     fn default() -> Self {
         Self {
             url: "http://127.0.0.1:8100".to_string(),
-            timeout_secs: 15,  // 增加到 15 秒，适应 WDA 的响应延迟
+            timeout_secs: 60,  // 增加到 60 秒，全量 UI Source 探测可能非常耗时
             pool_idle_timeout_secs: 90,  // 增加空闲超时，保持连接复用
         }
     }

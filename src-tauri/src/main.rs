@@ -12,11 +12,13 @@ mod video;
 mod gestures;
 pub mod error;
 pub mod commands;
+pub mod smart_task;
 
 use crate::config::AppConfig;
 use crate::app_state::AppState;
 use crate::services::{VideoService, HealthService};
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 fn main() {
     // 初始化日志系统
@@ -44,11 +46,12 @@ fn main() {
     let window_state = Arc::clone(&app_state);
 
     tauri::Builder::default()
-        // 注册状态到 Tauri
         .manage(Arc::clone(app_state.wda_client()))
         .manage(Arc::clone(app_state.streaming_state()))
         .manage(Arc::clone(app_state.device_manager()))
         .manage(Arc::clone(&app_state))
+        // SmartTask 执行引擎专用 CancellationToken
+        .manage(Arc::new(CancellationToken::new()))
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -96,6 +99,20 @@ fn main() {
             commands::device::set_orientation,
             commands::device::set_video_active,
             commands::device::diagnose_wda_connection,
+            commands::device::find_element,
+            commands::device::find_element_by_label,
+            commands::device::get_element_rect,
+            commands::device::get_ui_source,
+            commands::device::get_ui_source_xml,
+            commands::device::optimize_wda_performance,
+            // SmartTask 智能自动化
+            commands::smart_task::inspect_element,
+            commands::smart_task::save_task,
+            commands::smart_task::load_tasks,
+            commands::smart_task::delete_task,
+            commands::smart_task::get_task_storage_dir,
+            commands::smart_task::start_task_runner,
+            commands::smart_task::stop_task_runner,
             // 触控操作
             commands::touch::send_tap,
             commands::touch::send_double_tap,
@@ -111,7 +128,8 @@ fn main() {
             commands::hardware::press_action_button,
             commands::hardware::press_volume_up,
             commands::hardware::press_volume_down,
-            commands::hardware::toggle_lock
+            commands::hardware::toggle_lock,
+            commands::window::resize_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

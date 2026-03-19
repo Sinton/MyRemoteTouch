@@ -11,10 +11,12 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@microlink/react-json-view": "^1.31.14",
     "@tailwindcss/vite": "^4.2.1",
     "@tauri-apps/api": "^2.10.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-json-view": "^1.21.3",
     "tailwindcss": "^4.2.1",
     "zustand": "^5.0.11"
   },

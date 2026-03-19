@@ -59,10 +59,10 @@ export const DebugTools = {
    * 打印性能统计
    */
   printPerformanceStats() {
-    if (typeof performance !== 'undefined' && performance.memory) {
+    if (typeof performance !== 'undefined' && (performance as any).memory) {
       console.log("=== 浏览器性能统计 ===");
-      console.log(`内存使用: ${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`内存限制: ${(performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`内存使用: ${((performance as any).memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`内存限制: ${((performance as any).memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`);
     }
   }
 };

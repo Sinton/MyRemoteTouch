@@ -138,3 +138,65 @@ pub async fn diagnose_wda_connection(wda: tauri::State<'_, Arc<WdaClient>>) -> A
     info!("诊断完成: {:?}", diagnostics);
     Ok(diagnostics)
 }
+
+#[tauri::command]
+pub async fn find_element(
+    wda: tauri::State<'_, Arc<WdaClient>>, 
+    strategy: String,
+    selector: String
+) -> AppResult<String> {
+    info!("正在查找元素: Strategy={}, Selector='{}'", strategy, selector);
+    wda.find_element(&strategy, &selector).await
+}
+
+#[tauri::command]
+pub async fn find_element_by_label(
+    wda: tauri::State<'_, Arc<WdaClient>>, 
+    label: String
+) -> AppResult<String> {
+    info!("正在通过 Label 查找元素: '{}'", label);
+    wda.find_element_by_label(&label).await
+}
+
+#[tauri::command]
+pub async fn get_element_rect(
+    wda: tauri::State<'_, Arc<WdaClient>>, 
+    element_id: String
+) -> AppResult<serde_json::Value> {
+    debug!("正在获取元素 {} 的位置...", element_id);
+    wda.get_element_rect(&element_id).await
+}
+
+#[tauri::command]
+pub async fn get_ui_source(wda: tauri::State<'_, Arc<WdaClient>>) -> AppResult<serde_json::Value> {
+    info!("🚀 开始远程抓取全量界面树 (JSON)...");
+    let now = std::time::Instant::now();
+    let res = wda.get_source().await;
+    let elapsed = now.elapsed().as_secs_f32();
+    match &res {
+        Ok(_) => info!("✅ 界面树 (JSON) 抓取成功，耗时: {:.2}s", elapsed),
+        Err(e) => info!("❌ 界面树 (JSON) 抓取失败，耗时: {:.2}s, 错误: {}", elapsed, e),
+    }
+    res
+}
+
+#[tauri::command]
+pub async fn get_ui_source_xml(wda: tauri::State<'_, Arc<WdaClient>>) -> AppResult<String> {
+    info!("🚀 开始远程抓取全量界面树 (XML Hierarchy)...");
+    let now = std::time::Instant::now();
+    let res = wda.get_source_xml().await;
+    let elapsed = now.elapsed().as_secs_f32();
+    match &res {
+        Ok(_) => info!("✅ 界面树 (XML) 抓取成功，耗时: {:.2}s", elapsed),
+        Err(e) => info!("❌ 界面树 (XML) 抓取失败，耗时: {:.2}s, 错误: {}", elapsed, e),
+    }
+    res
+}
+
+#[tauri::command]
+pub async fn optimize_wda_performance(wda: tauri::State<'_, Arc<WdaClient>>) -> AppResult<()> {
+    info!("🚀 执行 WDA 性能优化补丁...");
+    let sid = wda.get_session_id().await;
+    wda.apply_low_latency_settings(&sid).await
+}
+
