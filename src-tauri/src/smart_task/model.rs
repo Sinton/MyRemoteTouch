@@ -31,6 +31,38 @@ pub enum Selector {
         icon_id: String,
         region: Option<Region>,
     },
+    /// v2.1: 多候选选择器 — 按优先级依次尝试多个选择器，首个命中即采用
+    MultiMatch {
+        candidates: Vec<SelectorCandidate>,
+    },
+}
+
+/// MultiMatch 内的候选项（避免递归嵌套 Selector 导致 serde tag 冲突）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SelectorCandidate {
+    WdaLabel { value: String },
+    WdaPredicate { value: String },
+    OcrText { value: String, region: Option<Region> },
+    TemplateIcon { icon_id: String, region: Option<Region> },
+}
+
+impl SelectorCandidate {
+    /// 将候选项提升为完整的 Selector（供 hybrid_selector::resolve 调用）
+    pub fn to_selector(&self) -> Selector {
+        match self {
+            SelectorCandidate::WdaLabel { value } => Selector::WdaLabel { value: value.clone() },
+            SelectorCandidate::WdaPredicate { value } => Selector::WdaPredicate { value: value.clone() },
+            SelectorCandidate::OcrText { value, region } => Selector::OcrText {
+                value: value.clone(),
+                region: region.clone(),
+            },
+            SelectorCandidate::TemplateIcon { icon_id, region } => Selector::TemplateIcon {
+                icon_id: icon_id.clone(),
+                region: region.clone(),
+            },
+        }
+    }
 }
 
 /// 动作类型
@@ -46,9 +78,39 @@ pub enum Action {
     SmartSleep {
         variable: String,
         fallback_secs: u64,
+        /// v2.1: 提前唤醒秒数，实际休眠 = max(0, extracted - early_wake_secs)
+        #[serde(default)]
+        early_wake_secs: Option<u64>,
     },
     /// 退出任务（成功结束）
     Finish,
+}
+
+/// v2.1: 步骤成功后的跳转策略
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SuccessRoute {
+    /// 固定跳转到指定步骤（兼容 v2.0 的 on_success: Option<String>）
+    Next {
+        step_id: String,
+    },
+    /// 条件路由分叉 — 根据匹配到的文本内容选择跳转目标
+    ConditionalRoute {
+        routes: Vec<ConditionalBranch>,
+        /// 兜底跳转：所有条件都不满足时走这里
+        default: String,
+    },
+    /// 任务结束（无后续步骤）
+    Finish,
+}
+
+/// 条件分叉的单条路由规则
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConditionalBranch {
+    /// 匹配条件：matched_text CONTAINS 此字符串时走该分支
+    pub text_contains: String,
+    /// 跳转目标步骤 ID
+    pub goto_step: String,
 }
 
 /// 步骤失败时的处理策略
@@ -80,8 +142,8 @@ pub struct Step {
     pub post_delay_ms: u64,
     /// 超时阈值（ms），识别器超时后触发 failure_policy
     pub timeout_ms: u64,
-    /// 识别成功时跳转的下一个步骤 ID（None 表示结束）
-    pub on_success: Option<String>,
+    /// v2.1: 识别成功时的跳转策略（替代原来的 Option<String>）
+    pub on_success: SuccessRoute,
     /// 识别失败时的处理策略
     pub on_failure: FailurePolicy,
 }
@@ -99,6 +161,9 @@ pub struct Task {
     pub global_timeout_secs: u64,
     /// 模拟人工延迟范围 (最小ms, 最大ms)
     pub human_delay_range: (u64, u64),
+    /// v2.1: 最大循环次数（防止死循环），0 表示不限制
+    #[serde(default)]
+    pub max_loop_count: u32,
     /// 步骤列表
     pub steps: Vec<Step>,
     /// 入口步骤 ID

@@ -9,7 +9,8 @@ use tracing::{debug, error, info, warn};
 use crate::clients::WdaClient;
 use crate::error::{AppError, AppResult};
 use crate::smart_task::hybrid_selector;
-use crate::smart_task::model::{Action, FailurePolicy, Step, Task};
+use crate::smart_task::model::{Action, FailurePolicy, Step, SuccessRoute, Task};
+use crate::gestures::{GestureFactory, GestureStrategy};
 
 /// 执行引擎状态（推送给前端的 Tauri Event payload）
 #[derive(Debug, Clone, Serialize)]
@@ -88,6 +89,7 @@ impl TaskRunner {
 
         let mut current_id = self.task.entry.as_str();
         let mut executed_count: usize = 0;
+        let mut loop_count: u32 = 0;
 
         loop {
             // ── 急停检查 ─────────────────────────────────────────────
@@ -106,6 +108,17 @@ impl TaskRunner {
                     reason: msg.clone(),
                 });
                 return Err(AppError::Wda(msg));
+            }
+
+            // ── v2.1: 循环保护 ──────────────────────────────────────
+            if self.task.max_loop_count > 0 && loop_count >= self.task.max_loop_count {
+                let msg = format!("已达最大循环次数 ({})", self.task.max_loop_count);
+                info!("[Runner] {}", msg);
+                emit_fn(RunnerEvent::Finished {
+                    total_steps: executed_count,
+                    elapsed_secs: start.elapsed().as_secs(),
+                });
+                return Ok(());
             }
 
             // ── 查找当前步骤 ────────────────────────────────────────
@@ -145,31 +158,51 @@ impl TaskRunner {
                     // ── 执行动作 ────────────────────────────────────
                     match &step.action {
                         Action::Tap { offset_x, offset_y } => {
-                            let (tx, ty) = self.humanized_tap(
-                                hit.center_x + offset_x,
-                                hit.center_y + offset_y,
-                            );
+                            // ── v2.1: 智能坐标换算 ──────────────────────────
+                            // 如果 offset 是 0.0-1.0 之间的值，认为它是录制得到的绝对百分比坐标
+                            // 如果 offset > 1.0 或为 0，且有探测到元素，则作为元素中心点的相对偏移
+                            let target_x = if *offset_x > 0.0 && *offset_x <= 1.0 {
+                                self.device_w * (*offset_x)
+                            } else {
+                                hit.center_x + (*offset_x)
+                            };
+
+                            let target_y = if *offset_y > 0.0 && *offset_y <= 1.0 {
+                                self.device_h * (*offset_y)
+                            } else {
+                                hit.center_y + (*offset_y)
+                            };
+
+                            let (tx, ty) = self.humanized_tap(target_x, target_y);
+                            
                             emit_fn(RunnerEvent::Executing {
                                 step_id: step.id.clone(),
-                                action_desc: format!("点击 ({:.0}, {:.0})", tx, ty),
+                                action_desc: format!("点击位置 ({:.0}, {:.0})", tx, ty),
                                 tap_x: Some(tx),
                                 tap_y: Some(ty),
                             });
                             self.do_tap(tx, ty).await?;
                         }
-                        Action::SmartSleep { variable, fallback_secs } => {
-                            let secs = hybrid_selector::extract_number(
+                        Action::SmartSleep { variable, fallback_secs, early_wake_secs } => {
+                            let extracted = hybrid_selector::extract_number(
                                 &hit.matched_text,
                                 variable,
                             )
                             .unwrap_or(*fallback_secs);
 
-                            info!("[Runner]   💤 SmartSleep: {}s (提取自 '{}')", secs, hit.matched_text);
+                            // v2.1: 提前唤醒
+                            let wake = early_wake_secs.unwrap_or(0);
+                            let actual_sleep = if extracted > wake { extracted - wake } else { 0 };
+
+                            info!(
+                                "[Runner]   💤 SmartSleep: {}s (提取={}, 提前唤醒={}s, 实际休眠={}s)",
+                                extracted, hit.matched_text, wake, actual_sleep
+                            );
                             emit_fn(RunnerEvent::Sleeping {
                                 step_id: step.id.clone(),
-                                remaining_secs: secs,
+                                remaining_secs: actual_sleep,
                             });
-                            self.cancellable_sleep(Duration::from_secs(secs)).await?;
+                            self.cancellable_sleep(Duration::from_secs(actual_sleep)).await?;
                         }
                         Action::Finish => {
                             info!("[Runner]   🏁 Finish action — 任务正常结束");
@@ -191,18 +224,58 @@ impl TaskRunner {
                         self.cancellable_sleep(post_wait).await?;
                     }
 
-                    // ── 跳转到下一步骤 ─────────────────────────────
+                    // ── v2.1: 跳转路由 (支持条件分叉) ────────────────
                     match &step.on_success {
-                        Some(next_id) => {
+                        SuccessRoute::Next { step_id } => {
+                            if step_id.is_empty() {
+                                // step_id 为空 → 自动跳到下一个相邻步骤
+                                let current_idx = self.task.steps.iter().position(|s| s.id == step.id);
+                                match current_idx {
+                                    Some(idx) if idx + 1 < self.task.steps.len() => {
+                                        let next = &self.task.steps[idx + 1];
+                                        info!("[Runner]   ➡ 自动跳至下一步: {} ({})", next.name, next.id);
+                                        current_id = next.id.as_str();
+                                    }
+                                    _ => {
+                                        // 已经是最后一步 → 自动结束
+                                        info!("[Runner]   🏁 已是最后一步，自动结束任务");
+                                        emit_fn(RunnerEvent::Finished {
+                                            total_steps: executed_count,
+                                            elapsed_secs: start.elapsed().as_secs(),
+                                        });
+                                        return Ok(());
+                                    }
+                                }
+                            } else {
+                                current_id = self.task
+                                                 .steps
+                                                 .iter()
+                                                 .find(|s| s.id == *step_id)
+                                                 .map(|s| s.id.as_str())
+                                                 .unwrap_or(step_id.as_str());
+                            }
+                        }
+                        SuccessRoute::ConditionalRoute { routes, default } => {
+                            let matched_text = &hit.matched_text;
+                            let target = routes
+                                .iter()
+                                .find(|r| matched_text.contains(&r.text_contains))
+                                .map(|r| r.goto_step.as_str())
+                                .unwrap_or(default.as_str());
+
+                            info!(
+                                "[Runner]   🔀 条件路由: matched='{}' → 跳转到 '{}'",
+                                matched_text, target
+                            );
+                            loop_count += 1; // 条件路由通常意味着循环，计数
                             current_id = self.task
                                              .steps
                                              .iter()
-                                             .find(|s| s.id == *next_id)
+                                             .find(|s| s.id == target)
                                              .map(|s| s.id.as_str())
-                                             .unwrap_or(next_id.as_str());
+                                             .unwrap_or(target);
                         }
-                        None => {
-                            // 没有 on_success → 任务完成
+                        SuccessRoute::Finish => {
                             emit_fn(RunnerEvent::Finished {
                                 total_steps: executed_count,
                                 elapsed_secs: start.elapsed().as_secs(),
@@ -276,28 +349,11 @@ impl TaskRunner {
         }
     }
 
-    /// 执行 WDA Tap
+    /// 执行 WDA Tap (使用 GestureFactory 保证兼容性)
     async fn do_tap(&self, x: f64, y: f64) -> AppResult<()> {
-        let sid = self.wda.get_session_id().await;
-        let url = self.wda.format_url(&format!("/session/{}/wda/tap", sid.as_str()));
-        let body = serde_json::json!({
-            "x": x.round() as i64,
-            "y": y.round() as i64,
-        });
-
-        let res = self.wda
-                      .get_dedicated_client()
-                      .post(&url)
-                      .json(&body)
-                      .send()
-                      .await?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            return Err(AppError::Wda(format!("TAP 失败: {} {}", status, text)));
-        }
-        Ok(())
+        info!("[Runner]   ⚡ 正在执行点击: ({:.1}, {:.1})", x, y);
+        let gesture = GestureFactory::create_tap(GestureStrategy::Auto);
+        gesture.tap(&self.wda, x, y).await
     }
 
     /// Human-like 随机坐标偏移（±3px 抖动）

@@ -133,16 +133,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <div className={`bg-[rgba(255,255,255,0.2)] mx-[4px] ${isVertical ? 'w-[16px] h-[1px] my-[4px]' : 'w-[1px] h-[16px]'}`}></div>
 
         <button 
-          className={`bg-transparent border-none w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 relative active:scale-95
-            ${isSmartTaskActive ? 'text-white bg-purple-500/30' : 'text-[#d1d1d6] hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`} 
-          title="SmartTask Automation" 
+          className={`bg-transparent border-none w-[32px] h-[32px] rounded-[8px] flex justify-center items-center cursor-pointer transition-all duration-200 relative active:scale-95
+            ${isSmartTaskActive 
+              ? 'text-[#0A84FF] translate-y-[1px] shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)]' 
+              : 'text-[#d1d1d6] hover:bg-[rgba(255,255,255,0.1)] hover:text-white'}`} 
+          title="SmartTask Automation Flow" 
           onClick={onSmartTaskClick}
         >
-          {isSmartTaskActive && <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
-          </span>}
-          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          {isSmartTaskActive && (
+            <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0A84FF] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#0A84FF]"></span>
+            </span>
+          )}
+          {/* Custom Task Flow Icon: Node 1 (TL) Connected to Node 2 (BR) */}
+          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="8" height="8" rx="1.5" strokeWidth="2" />
+            <rect x="13" y="13" width="8" height="8" rx="1.5" strokeWidth="2" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 7h4v4" />
+          </svg>
         </button>
 
         <button className="bg-transparent border-none text-[#d1d1d6] w-[32px] h-[32px] rounded-[6px] flex justify-center items-center cursor-pointer transition-all duration-150 hover:bg-[rgba(255,255,255,0.1)] hover:text-white active:scale-95" title="Settings" onClick={onSettingsClick}>

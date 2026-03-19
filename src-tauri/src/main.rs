@@ -51,7 +51,7 @@ fn main() {
         .manage(Arc::clone(app_state.device_manager()))
         .manage(Arc::clone(&app_state))
         // SmartTask 执行引擎专用 CancellationToken
-        .manage(Arc::new(CancellationToken::new()))
+        .manage(Arc::new(std::sync::Mutex::new(CancellationToken::new())))
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             let handle = app.handle().clone();

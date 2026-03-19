@@ -11,7 +11,7 @@ interface RadialMenuProps {
 interface MenuItem {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
   makeStep: () => Step;
 }
@@ -64,7 +64,7 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ x, y, element, onClose }) => {
         pre_delay_ms: 0,
         post_delay_ms: 800,
         timeout_ms: 10000,
-        on_success: null,
+        on_success: { type: 'next', step_id: '' },
         on_failure: 'retry',
       }),
     },
@@ -77,16 +77,16 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ x, y, element, onClose }) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
       ),
-      color: 'bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20 hover:border-purple-500/40',
+      color: 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-500/40',
       makeStep: () => ({
         id: generateId(),
         name: element?.label ? `确认「${element.label}」在屏幕` : '检查元素',
         selector: buildSelector(),
-        action: { type: 'finish' },
+        action: { type: 'smart_sleep', variable: '', fallback_secs: 0 },
         pre_delay_ms: 0,
         post_delay_ms: 500,
         timeout_ms: 30000,
-        on_success: null,
+        on_success: { type: 'next', step_id: '' },
         on_failure: 'retry',
       }),
     },
@@ -107,7 +107,7 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ x, y, element, onClose }) => {
         pre_delay_ms: 0,
         post_delay_ms: 1000,
         timeout_ms: 60000,
-        on_success: null,
+        on_success: { type: 'next', step_id: '' },
         on_failure: 'abort',
       }),
     },
@@ -124,11 +124,11 @@ const RadialMenu: React.FC<RadialMenuProps> = ({ x, y, element, onClose }) => {
         id: generateId(),
         name: element?.label ? `若「${element.label}」则跳转` : '条件分支',
         selector: buildSelector(),
-        action: { type: 'finish' },
+        action: { type: 'smart_sleep', variable: '', fallback_secs: 0 },
         pre_delay_ms: 0,
         post_delay_ms: 300,
         timeout_ms: 5000,
-        on_success: null,
+        on_success: { type: 'next', step_id: '' },
         on_failure: 'goto_step' as unknown as 'retry',
       }),
     },

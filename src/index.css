@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
 :root {
   --glass-bg: rgba(30, 30, 35, 0.45);
   --glass-border: rgba(255, 255, 255, 0.1);
@@ -42,6 +55,26 @@
   100% { transform: translate(0%, -60%) scale(1) rotate(-360deg); }
 }
 
+@keyframes click-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.8; border-width: 4px; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; border-width: 1px; }
+}
+
+@keyframes status-slide-up {
+  from { transform: translateY(100%) translateX(-50%); opacity: 0; }
+  to { transform: translateY(0) translateX(-50%); opacity: 1; }
+}
+
+@keyframes status-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+  50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.3); }
+}
+
+@keyframes marquee-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @keyframes tap-ping {
   0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
@@ -62,10 +95,10 @@
   }
 }
 
-/* Custom Scrollbar for a premium look */
+/* Custom Scrollbar — Premium Floating Look (No Layout Shift) */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -73,16 +106,20 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  transition: background 0.3s;
+  transition: all 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.custom-scrollbar {
+  scrollbar-gutter: stable;
 }

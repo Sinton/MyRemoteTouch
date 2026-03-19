@@ -26,7 +26,8 @@ const PhoneWorkbench: React.FC = () => {
   const [deviceSize, setDeviceSize] = useState<WindowSize>({ width: 390, height: 844 });
   const phoneRef = useRef<HTMLDivElement>(null);
 
-  const { isRecording, activeTab } = useSmartTaskStore();
+  // --- SmartTask Global States ---
+  const { isRecording, activeTab, calibratingStepId, sidebarWidth, inspectorWidth } = useSmartTaskStore();
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
@@ -39,14 +40,14 @@ const PhoneWorkbench: React.FC = () => {
         if (!(window as any).__TAURI__) return;
         const size = await DeviceService.getWindowSize();
         if (size) {
-           setDeviceSize({ width: size.width, height: size.height });
+          setDeviceSize({ width: size.width, height: size.height });
         }
       } catch (err) { }
     };
     initDeviceInfo();
   }, []);
 
-  // 窗口自动伸缩控制 (Reactive Window Redimensioning)
+  // 窗口自动伸缩控制 (Discrete Window Redimensioning)
   useEffect(() => {
     const resizeWindow = async () => {
       if (!(window as any).__TAURI__) return;
@@ -56,18 +57,17 @@ const PhoneWorkbench: React.FC = () => {
         const targetH = 950;
 
         if (showSmartTask) {
-          if (activeTab === 'tasks') targetW = 800;
-          else if (activeTab === 'inspector') targetW = 1600;
+          // 仅在切换模式（流水线/探测器）时，根据当前面板宽度设定窗口目标尺寸
+          if (activeTab === 'tasks') targetW = sidebarWidth + 500;
+          else if (activeTab === 'inspector') targetW = sidebarWidth + inspectorWidth + 500;
         }
 
-        console.info(`[DEFORMATION] Adjusting Window: ${targetW}x${targetH} (SmartTask: ${showSmartTask}, Tab: ${activeTab})`);
+        console.info(`[CONTEXTUAL] Window Transformation: ${targetW}x${targetH} (Tab: ${activeTab})`);
         await invoke('resize_window', { width: targetW, height: targetH });
-      } catch (err) {
-        console.error('Resize failed:', err);
-      }
+      } catch (err) { }
     };
     resizeWindow();
-  }, [showSmartTask, activeTab]);
+  }, [showSmartTask, activeTab]); // 关键点：移除了 sidebarWidth/inspectorWidth 监听，防止手动拉动时窗体抖动
 
   useEffect(() => {
     const handleMouseMove = (e: globalThis.MouseEvent) => {
@@ -139,52 +139,60 @@ const PhoneWorkbench: React.FC = () => {
     return `${base} ${posDirs[toolbarPos]}`;
   };
 
+  // 动态内边距计算
+  const dynamicPadding = showSmartTask 
+    ? {
+        paddingLeft: `${sidebarWidth + 40}px`,
+        paddingRight: activeTab === 'inspector' ? `${inspectorWidth + 40}px` : '40px'
+      }
+    : { padding: '40px' };
+
   return (
     <>
-        <div
-          className={`flex justify-center items-center h-screen w-screen p-[10px] box-border overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.18,0.89,0.32,1.28)]
-            ${showSmartTask ? (activeTab === 'inspector' ? 'pr-[820px] pl-[280px]' : 'pl-[280px]') : ''}`}
-          style={{ cursor: isDragging ? 'grabbing' : 'default' }}
-        >
+      <div
+        className="flex justify-center items-center h-screen w-screen box-border overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.18,0.89,0.32,1.28)]"
+        style={{ 
+          cursor: isDragging ? 'grabbing' : 'default',
+          ...dynamicPadding
+        }}
+      >
         <div className={getLayoutClasses()}>
           <Toolbar
             onSettingsClick={() => setShowSettings(!showSettings)}
             onSmartTaskClick={() => setShowSmartTask(!showSmartTask)}
             isSmartTaskActive={showSmartTask}
-          onDragStart={handleDragStart}
-          position={toolbarPos}
-          isDragging={isDragging}
-          onHomeClick={pressHome}
-          onVolumeUpClick={pressVolumeUp}
-          onVolumeDownClick={pressVolumeDown}
-          onMuteClick={pressMute}
-          onLockClick={pressLock}
-          isProcessingHardware={isProcessingHardware}
-          fps={fps}
-          bitrate={bitrate}
-        />
+            onDragStart={handleDragStart}
+            position={toolbarPos}
+            isDragging={isDragging}
+            onHomeClick={pressHome}
+            onVolumeUpClick={pressVolumeUp}
+            onVolumeDownClick={pressVolumeDown}
+            onMuteClick={pressMute}
+            onLockClick={pressLock}
+            isProcessingHardware={isProcessingHardware}
+            fps={fps}
+            bitrate={bitrate}
+          />
 
-        <div className="relative" ref={phoneRef}>
-          <Phone
-            deviceSize={deviceSize}
-            toolbarPosition={toolbarPos}
-            setFps={setFps}
-            setBitrate={setBitrate}
-          >
-            {/* SmartTask 浮层（录制模式 或 探测模式 + 面板打开时渲染） */}
-            {showSmartTask && (isRecording || activeTab === 'inspector') && (
-              <SmartTaskOverlay
-                deviceW={deviceSize.width}
-                deviceH={deviceSize.height}
-              />
-            )}
-          </Phone>
-
-          {/* Removed inline sidebar and button to place sidebar at root */}
+          <div className="relative" ref={phoneRef}>
+            <Phone
+              deviceSize={deviceSize}
+              toolbarPosition={toolbarPos}
+              setFps={setFps}
+              setBitrate={setBitrate}
+            >
+              {/* SmartTask 浮层：满足任一模式即加载，拦截屏幕点击 */}
+              {showSmartTask && (isRecording || activeTab === 'inspector' || !!calibratingStepId) && (
+                <SmartTaskOverlay
+                  deviceW={deviceSize.width}
+                  deviceH={deviceSize.height}
+                />
+              )}
+            </Phone>
+          </div>
         </div>
-      </div>
 
-    </div>
+      </div>
 
       <Settings visible={showSettings} onClose={() => setShowSettings(false)} />
 

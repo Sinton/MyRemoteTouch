@@ -79,7 +79,7 @@ pub fn get_task_storage_dir() -> AppResult<TaskStorageInfo> {
 pub async fn start_task_runner(
     app: tauri::AppHandle,
     wda: tauri::State<'_, Arc<WdaClient>>,
-    cancel: tauri::State<'_, Arc<CancellationToken>>,
+    cancel_mutex: tauri::State<'_, Arc<std::sync::Mutex<CancellationToken>>>,
     task: Task,
     device_w: f64,
     device_h: f64,
@@ -87,7 +87,15 @@ pub async fn start_task_runner(
     info!("[SmartTask] 启动任务执行器: {} ({})", task.name, task.task_id);
 
     let wda = Arc::clone(&wda);
-    let cancel_child = cancel.child_token();
+    
+    // 获取或重置取消令牌
+    let cancel_child = {
+        let mut cancel = cancel_mutex.lock().map_err(|e| AppError::Wda(format!("Mutex lock error: {}", e)))?;
+        if cancel.is_cancelled() {
+            *cancel = CancellationToken::new();
+        }
+        cancel.child_token()
+    };
 
     let runner = TaskRunner::new(
         wda,
@@ -107,7 +115,19 @@ pub async fn start_task_runner(
 
         match runner.run(emit).await {
             Ok(()) => info!("[SmartTask] 任务执行器正常退出"),
-            Err(e) => error!("[SmartTask] 任务执行器异常: {}", e),
+            Err(e) => {
+                error!("[SmartTask] 任务执行器异常: {}", e);
+                // 确保前端获知执行结束（失败或通过取消结束）
+                let event = if e.to_string().contains("任务已取消") {
+                    RunnerEvent::Cancelled
+                } else {
+                    RunnerEvent::Failed { 
+                        step_id: "global".to_string(), 
+                        reason: e.to_string() 
+                    }
+                };
+                let _ = app_handle.emit("smart_task:progress", &event);
+            }
         }
     });
 
@@ -117,9 +137,10 @@ pub async fn start_task_runner(
 /// 急停：取消正在运行的任务
 #[tauri::command]
 pub async fn stop_task_runner(
-    cancel: tauri::State<'_, Arc<CancellationToken>>,
+    cancel_mutex: tauri::State<'_, Arc<std::sync::Mutex<CancellationToken>>>,
 ) -> AppResult<()> {
     info!("[SmartTask] 急停：取消任务执行");
+    let cancel = cancel_mutex.lock().map_err(|e| AppError::Wda(format!("Mutex lock error: {}", e)))?;
     cancel.cancel();
     Ok(())
 }

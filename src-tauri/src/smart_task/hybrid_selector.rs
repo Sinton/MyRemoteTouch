@@ -21,11 +21,12 @@ pub struct ResolveResult {
     pub matched_text: String,
 }
 
-/// 混合选择器：按类型分发，WDA Label → Predicate → OCR → TemplateIcon
+/// 混合选择器：按类型分发，WDA Label → Predicate → OCR → TemplateIcon → MultiMatch
 ///
 /// - WdaLabel / WdaPredicate: 使用 WDA find_element + get_element_rect
 /// - OcrText: 截图 → Tesseract → 在全屏 UI 树中搜索匹配文本的元素
 /// - TemplateIcon: 截图 → NCC 模板匹配 → 返回匹配区域中心坐标
+/// - MultiMatch: 按优先级依次尝试候选选择器，首个命中即采用
 pub async fn resolve(
     wda: &WdaClient,
     selector: &Selector,
@@ -41,7 +42,50 @@ pub async fn resolve(
         Selector::TemplateIcon { icon_id, region } => {
             resolve_by_template(wda, icon_id, region.as_ref(), device_w, device_h).await
         }
+        Selector::MultiMatch { candidates } => {
+            resolve_multi_match(wda, candidates, device_w, device_h).await
+        }
     }
+}
+
+/// v2.1: 多候选选择器 — 按优先级依次尝试，首个命中即返回
+async fn resolve_multi_match(
+    wda: &WdaClient,
+    candidates: &[crate::smart_task::model::SelectorCandidate],
+    device_w: f64,
+    device_h: f64,
+) -> AppResult<ResolveResult> {
+    use crate::smart_task::model::SelectorCandidate;
+
+    let total = candidates.len();
+    for (i, candidate) in candidates.iter().enumerate() {
+        debug!("[Selector] MultiMatch 尝试候选 {}/{}: {:?}", i + 1, total, candidate);
+
+        let result = match candidate {
+            SelectorCandidate::WdaLabel { value } => resolve_by_label(wda, value).await,
+            SelectorCandidate::WdaPredicate { value } => resolve_by_predicate(wda, value).await,
+            SelectorCandidate::OcrText { value, region } => {
+                resolve_by_ocr(wda, value, region.as_ref(), device_w, device_h).await
+            }
+            SelectorCandidate::TemplateIcon { icon_id, region } => {
+                resolve_by_template(wda, icon_id, region.as_ref(), device_w, device_h).await
+            }
+        };
+
+        match result {
+            Ok(hit) => {
+                info!("[Selector] MultiMatch 候选 {}/{} 命中", i + 1, total);
+                return Ok(hit);
+            }
+            Err(e) => {
+                debug!("[Selector] MultiMatch 候选 {}/{} 未命中: {}", i + 1, total, e);
+            }
+        }
+    }
+    Err(AppError::Wda(format!(
+        "MultiMatch 全部 {} 个候选均未命中",
+        total
+    )))
 }
 
 /// WDA Label 匹配（优先精确，失败则尝试模糊包含）
