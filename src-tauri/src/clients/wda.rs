@@ -3,7 +3,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use serde::Deserialize;
 use crate::error::{AppResult, AppError};
-use tracing::{info, warn};
+use tracing::{info, warn, debug};
 
 #[derive(Deserialize, Debug)]
 pub struct WdaResponse<T> {
@@ -309,7 +309,17 @@ impl WdaClient {
         let res = self.client.get(&url).send().await?;
         let body: serde_json::Value = res.json().await?;
         
-        Ok(body["value"].as_str().unwrap_or_default().to_string())
+        let value = body["value"].as_str().unwrap_or_default().to_string();
+        
+        // 调试：检查字符串长度和字节长度
+        if !value.is_empty() {
+            debug!(
+                "[WDA] get_element_attribute({}, {}): value='{}' (chars={}, bytes={})",
+                element_id, name, value, value.chars().count(), value.len()
+            );
+        }
+        
+        Ok(value)
     }
 
     /// 获取元素的文本 Label

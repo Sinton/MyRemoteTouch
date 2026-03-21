@@ -25,7 +25,7 @@ export type Selector =
 
 export type Action =
   | { type: 'tap'; offset_x: number; offset_y: number }
-  | { type: 'smart_sleep', fallback_secs: number | string, variable?: string, early_wake_secs?: number }
+  | { type: 'smart_sleep', fallback_secs: number | string, variable?: string, early_wake_secs?: number, refresh_before_extract?: boolean }
   | { type: 'finish' };
 
 export interface ConditionalBranch {
@@ -35,7 +35,7 @@ export interface ConditionalBranch {
 
 export type SuccessRoute =
   | { type: 'next'; step_id: string }
-  | { type: 'conditional_route'; routes: ConditionalBranch[]; default: string }
+  | { type: 'conditional_route'; routes: ConditionalBranch[]; default: string; refresh_before_check?: boolean }
   | { type: 'finish' };
 
 export type FailurePolicy =
@@ -47,6 +47,7 @@ export interface VariableExtraction {
   regex: string;          // 例如: (\d+)秒
   variable_name: string;   // 例如: wait_time
   target_text?: string;    // 关键：新增目标文本包含过滤
+  refresh_before_extract?: boolean; // v2.2: 提取前是否刷新页面获取最新文本
 }
 
 export interface Step {

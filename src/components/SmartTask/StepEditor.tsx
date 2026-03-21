@@ -58,7 +58,7 @@ export const StepEditor: React.FC<{
   const handleRouteTypeChange = (newType: string) => {
     let newRoute: SuccessRoute;
     if (newType === 'next') newRoute = { type: 'next', step_id: '' };
-    else if (newType === 'conditional_route') newRoute = { type: 'conditional_route', routes: [], default: '' };
+    else if (newType === 'conditional_route') newRoute = { type: 'conditional_route', routes: [], default: 'finish' };
     else newRoute = { type: 'finish' };
     handleUpdate({ on_success: newRoute });
   };
@@ -149,6 +149,25 @@ export const StepEditor: React.FC<{
                    <div className="space-y-1.5"><span className="text-[9px] font-bold text-[#0A84FF]/60 block uppercase">判定变量</span><input value={(step.action as any).variable} onChange={e => handleUpdate({ action: { ...step.action, variable: e.target.value } as any })} className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-[11px] text-white text-center font-mono" /></div>
                    <div className="space-y-1.5"><span className="text-[9px] font-bold text-amber-500/60 block uppercase tracking-widest">休眠时长</span><input value={(step.action as any).fallback_secs} onChange={e => handleUpdate({ action: { ...step.action, fallback_secs: e.target.value } as any })} className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-[11px] text-[#0A84FF] text-center font-mono" /></div>
                  </div>
+                 
+                 {/* 提取前刷新选项 */}
+                 <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                   <div className="flex flex-col gap-0.5">
+                     <span className="text-[8px] font-black text-white/40 uppercase">提取前刷新页面</span>
+                     <span className="text-[7px] text-white/20">前序步骤可能改变页面，开启可获取最新文本</span>
+                   </div>
+                   <button 
+                     onClick={() => handleUpdate({ 
+                       action: { 
+                         ...step.action, 
+                         refresh_before_extract: !(step.action as any).refresh_before_extract 
+                       } as any 
+                     })} 
+                     className={`w-10 h-5 rounded-full relative transition-all ${(step.action as any).refresh_before_extract ? 'bg-[#0A84FF]' : 'bg-white/10'}`}
+                   >
+                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${(step.action as any).refresh_before_extract ? 'right-0.5' : 'left-0.5'}`} />
+                   </button>
+                 </div>
                </div>
              )}
           </div>
@@ -161,6 +180,25 @@ export const StepEditor: React.FC<{
 
              {step.on_success.type === 'conditional_route' && (
                <div className="space-y-3 pt-1">
+                 {/* 全局配置：判定前刷新 */}
+                 <div className="flex items-center justify-between p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                   <div className="flex flex-col gap-0.5">
+                     <span className="text-[9px] font-black text-blue-400/80 uppercase">判定前刷新页面</span>
+                     <span className="text-[7px] text-white/30">等待后页面可能变化，开启可获取最新文本</span>
+                   </div>
+                   <button 
+                     onClick={() => handleUpdate({ 
+                       on_success: { 
+                         ...step.on_success, 
+                         refresh_before_check: !(step.on_success as any).refresh_before_check 
+                       } as any 
+                     })} 
+                     className={`w-10 h-5 rounded-full relative transition-all ${(step.on_success as any).refresh_before_check ? 'bg-[#0A84FF]' : 'bg-white/10'}`}
+                   >
+                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${(step.on_success as any).refresh_before_check ? 'right-0.5' : 'left-0.5'}`} />
+                   </button>
+                 </div>
+                 
                  {(step.on_success.routes || []).map((route: any, rIdx: number) => (
                    <div key={rIdx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-2">
                      <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-1.5">
@@ -203,6 +241,26 @@ export const StepEditor: React.FC<{
                      </div>
                    </div>
                  ))}
+                 
+                 {/* 兜底跳转配置 */}
+                 <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                   <div className="flex items-center justify-between mb-2">
+                     <span className="text-[9px] font-black text-amber-500/80 uppercase">兜底跳转 (Default)</span>
+                     {(!(step.on_success as any).default || (step.on_success as any).default === '') && (
+                       <span className="text-[8px] text-red-500 font-black animate-pulse">必须配置!</span>
+                     )}
+                   </div>
+                   <Select 
+                     value={(step.on_success as any).default || 'finish'} 
+                     options={[
+                       { value: 'finish', label: '🛑 结束执行' }, 
+                       ...allSteps.filter(s => s.id !== step.id).map(s => ({ value: s.id, label: `环节: ${s.name}` }))
+                     ]} 
+                     onChange={(val) => handleUpdate({ on_success: { ...step.on_success, default: val } as any })} 
+                   />
+                   <p className="text-[8px] text-white/30 mt-1.5">当所有条件都不满足时的跳转目标</p>
+                 </div>
+                 
                  <button onClick={() => { const rs = [...(step.on_success as any).routes || [], { text_contains: '', goto_step: 'finish' }]; handleUpdate({ on_success: { ...step.on_success, routes: rs } as any }); }} className="w-full h-8 border border-dashed border-white/10 rounded-lg text-[9px] font-black text-white/20 hover:text-amber-500 hover:border-amber-500/40 transition-all uppercase">+ 新增逻辑规则</button>
                </div>
              )}

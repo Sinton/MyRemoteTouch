@@ -238,7 +238,12 @@ async fn element_to_result(
     let h = rect["height"].as_f64().unwrap_or(0.0);
 
     // 获取真实的 Label 文本内容，而不是使用搜索时的关键词
-    let real_label = wda.get_element_label(element_id).await.unwrap_or(matched_text);
+    let real_label = wda.get_element_label(element_id).await.unwrap_or_else(|_| matched_text.clone());
+
+    debug!(
+        "[Selector] element_to_result: element_id={}, real_label='{}' (chars={}, bytes={})",
+        element_id, real_label, real_label.chars().count(), real_label.len()
+    );
 
     info!(
         "[Selector] 命中元素: rect=({:.0}, {:.0}, {:.0}, {:.0}), text='{}'",

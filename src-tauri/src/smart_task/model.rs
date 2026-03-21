@@ -76,14 +76,49 @@ pub enum Action {
     },
     /// 智能等待：从识别结果提取数字变量作为休眠时长（单位：秒）
     SmartSleep {
-        variable: String,
+        variable: Option<String>,
+        #[serde(deserialize_with = "deserialize_fallback_secs")]
         fallback_secs: u64,
         /// v2.1: 提前唤醒秒数，实际休眠 = max(0, extracted - early_wake_secs)
         #[serde(default)]
         early_wake_secs: Option<u64>,
+        /// v2.2: 提取前是否刷新页面获取最新文本（默认 false）
+        #[serde(default)]
+        refresh_before_extract: bool,
     },
     /// 退出任务（成功结束）
     Finish,
+}
+
+/// 自定义反序列化器：支持 fallback_secs 接收数字或字符串（包括变量引用）
+fn deserialize_fallback_secs<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Deserialize};
+    
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum FallbackValue {
+        Number(u64),
+        String(String),
+    }
+    
+    match FallbackValue::deserialize(deserializer)? {
+        FallbackValue::Number(n) => Ok(n),
+        FallbackValue::String(s) => {
+            // 尝试解析为数字
+            s.parse::<u64>()
+                .or_else(|_| {
+                    // 如果是变量引用格式 {{variable}}，返回默认值 5
+                    if s.trim().starts_with("{{") && s.trim().ends_with("}}") {
+                        Ok(5) // 默认兜底值
+                    } else {
+                        Err(de::Error::custom(format!("无法解析 fallback_secs: {}", s)))
+                    }
+                })
+        }
+    }
 }
 
 /// v2.1: 步骤成功后的跳转策略
@@ -99,6 +134,9 @@ pub enum SuccessRoute {
         routes: Vec<ConditionalBranch>,
         /// 兜底跳转：所有条件都不满足时走这里
         default: String,
+        /// v2.2: 是否在条件检查前重新扫描页面获取最新文本（默认 false）
+        #[serde(default)]
+        refresh_before_check: bool,
     },
     /// 任务结束（无后续步骤）
     Finish,
@@ -125,6 +163,18 @@ pub enum FailurePolicy {
     Abort,
 }
 
+/// 变量提取配置（从识别到的文本中提取数字变量）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VariableExtraction {
+    /// 正则表达式，用于从文本中提取数字
+    pub regex: String,
+    /// 变量名称
+    pub variable_name: String,
+    /// 目标文本关键词（用于物理定位元素）
+    #[serde(default)]
+    pub target_text: Option<String>,
+}
+
 /// 单个自动化步骤
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Step {
@@ -136,6 +186,9 @@ pub struct Step {
     pub selector: Selector,
     /// 识别成功后执行的动作
     pub action: Action,
+    /// 变量提取配置（可选）
+    #[serde(default)]
+    pub variable_extraction: Option<VariableExtraction>,
     /// 执行动作前的等待时间（ms）
     pub pre_delay_ms: u64,
     /// 执行动作后的等待时间（ms）

@@ -9,7 +9,7 @@ use tracing::{debug, error, info, warn};
 use crate::clients::WdaClient;
 use crate::error::{AppError, AppResult};
 use crate::smart_task::hybrid_selector;
-use crate::smart_task::model::{Action, FailurePolicy, Step, SuccessRoute, Task};
+use crate::smart_task::model::{Action, FailurePolicy, Selector, Step, SuccessRoute, Task};
 use crate::gestures::{GestureFactory, GestureStrategy};
 
 /// 执行引擎状态（推送给前端的 Tauri Event payload）
@@ -183,20 +183,74 @@ impl TaskRunner {
                             });
                             self.do_tap(tx, ty).await?;
                         }
-                        Action::SmartSleep { variable, fallback_secs, early_wake_secs } => {
-                            let extracted = hybrid_selector::extract_number(
-                                &hit.matched_text,
-                                variable,
-                            )
-                            .unwrap_or(*fallback_secs);
+                        Action::SmartSleep { variable, fallback_secs, early_wake_secs, refresh_before_extract } => {
+                            // v2.2: 根据配置决定是否重新扫描以获取最新文本
+                            let text_for_extraction = if *refresh_before_extract {
+                                debug!("[Runner] SmartSleep: 配置了 refresh_before_extract，重新扫描页面");
+                                
+                                // 如果用户配置了 variable_extraction.target_text，使用它作为搜索文本
+                                // 否则使用原始的 step.selector
+                                let scan_result = if let Some(var_ext) = &step.variable_extraction {
+                                    if let Some(target_text) = &var_ext.target_text {
+                                        if !target_text.is_empty() {
+                                            debug!("[Runner] SmartSleep: 使用 variable_extraction.target_text='{}' 进行扫描", target_text);
+                                            // 创建临时 selector，使用 target_text 作为搜索关键词
+                                            let temp_selector = Selector::WdaLabel {
+                                                value: target_text.clone(),
+                                            };
+                                            // 使用临时 selector 进行扫描
+                                            hybrid_selector::resolve(&self.wda, &temp_selector, self.device_w, self.device_h).await
+                                        } else {
+                                            self.scan_with_timeout(step).await
+                                        }
+                                    } else {
+                                        self.scan_with_timeout(step).await
+                                    }
+                                } else {
+                                    self.scan_with_timeout(step).await
+                                };
+                                
+                                match scan_result {
+                                    Ok(fresh_hit) => {
+                                        debug!(
+                                            "[Runner] SmartSleep: 获取到最新文本='{}' (原文本='{}')",
+                                            fresh_hit.matched_text, hit.matched_text
+                                        );
+                                        fresh_hit.matched_text
+                                    }
+                                    Err(e) => {
+                                        warn!("[Runner] SmartSleep: 重新扫描失败 ({}), 使用原文本", e);
+                                        hit.matched_text.clone()
+                                    }
+                                }
+                            } else {
+                                hit.matched_text.clone()
+                            };
+                            
+                            debug!(
+                                "[Runner] SmartSleep 输入: matched_text='{}' (chars={}, bytes={}), variable={:?}",
+                                text_for_extraction, text_for_extraction.chars().count(), text_for_extraction.len(), variable
+                            );
+                            
+                            let extracted = if let Some(var_name) = variable {
+                                let num = hybrid_selector::extract_number(
+                                    &text_for_extraction,
+                                    var_name,
+                                );
+                                debug!("[Runner] extract_number 结果: {:?}", num);
+                                num.unwrap_or(*fallback_secs)
+                            } else {
+                                // 如果没有指定变量名，直接使用 fallback_secs
+                                *fallback_secs
+                            };
 
                             // v2.1: 提前唤醒
                             let wake = early_wake_secs.unwrap_or(0);
                             let actual_sleep = if extracted > wake { extracted - wake } else { 0 };
 
                             info!(
-                                "[Runner]   💤 SmartSleep: {}s (提取={}, 提前唤醒={}s, 实际休眠={}s)",
-                                extracted, hit.matched_text, wake, actual_sleep
+                                "[Runner] SmartSleep: {}s (提取='{}', 提前唤醒={}s, 实际休眠={}s)",
+                                extracted, text_for_extraction, wake, actual_sleep
                             );
                             emit_fn(RunnerEvent::Sleeping {
                                 step_id: step.id.clone(),
@@ -205,7 +259,7 @@ impl TaskRunner {
                             self.cancellable_sleep(Duration::from_secs(actual_sleep)).await?;
                         }
                         Action::Finish => {
-                            info!("[Runner]   🏁 Finish action — 任务正常结束");
+                            info!("[Runner] Finish action - 任务正常结束");
                             executed_count += 1;
                             emit_fn(RunnerEvent::Finished {
                                 total_steps: executed_count,
@@ -233,12 +287,12 @@ impl TaskRunner {
                                 match current_idx {
                                     Some(idx) if idx + 1 < self.task.steps.len() => {
                                         let next = &self.task.steps[idx + 1];
-                                        info!("[Runner]   ➡ 自动跳至下一步: {} ({})", next.name, next.id);
+                                        info!("[Runner] 自动跳至下一步: {} ({})", next.name, next.id);
                                         current_id = next.id.as_str();
                                     }
                                     _ => {
                                         // 已经是最后一步 → 自动结束
-                                        info!("[Runner]   🏁 已是最后一步，自动结束任务");
+                                        info!("[Runner] 已是最后一步，自动结束任务");
                                         emit_fn(RunnerEvent::Finished {
                                             total_steps: executed_count,
                                             elapsed_secs: start.elapsed().as_secs(),
@@ -255,18 +309,78 @@ impl TaskRunner {
                                                  .unwrap_or(step_id.as_str());
                             }
                         }
-                        SuccessRoute::ConditionalRoute { routes, default } => {
-                            let matched_text = &hit.matched_text;
+                        SuccessRoute::ConditionalRoute { routes, default, refresh_before_check } => {
+                            // v2.2: 根据配置决定是否重新扫描
+                            let matched_text = if *refresh_before_check {
+                                debug!("[Runner] 条件路由: 配置了 refresh_before_check，重新扫描页面");
+                                
+                                // 如果用户配置了 variable_extraction.target_text，使用它作为搜索文本
+                                let scan_result = if let Some(var_ext) = &step.variable_extraction {
+                                    if let Some(target_text) = &var_ext.target_text {
+                                        if !target_text.is_empty() {
+                                            debug!("[Runner] 条件路由: 使用 variable_extraction.target_text='{}' 进行扫描", target_text);
+                                            // 创建临时 selector，使用 target_text 作为搜索关键词
+                                            let temp_selector = Selector::WdaLabel {
+                                                value: target_text.clone(),
+                                            };
+                                            hybrid_selector::resolve(&self.wda, &temp_selector, self.device_w, self.device_h).await
+                                        } else {
+                                            self.scan_with_timeout(step).await
+                                        }
+                                    } else {
+                                        self.scan_with_timeout(step).await
+                                    }
+                                } else {
+                                    self.scan_with_timeout(step).await
+                                };
+                                
+                                match scan_result {
+                                    Ok(fresh_hit) => {
+                                        debug!(
+                                            "[Runner] 条件路由: 获取到最新文本='{}' (原文本='{}')",
+                                            fresh_hit.matched_text, hit.matched_text
+                                        );
+                                        fresh_hit.matched_text
+                                    }
+                                    Err(e) => {
+                                        warn!("[Runner] 条件路由: 重新扫描失败 ({}), 使用原文本", e);
+                                        hit.matched_text.clone()
+                                    }
+                                }
+                            } else {
+                                hit.matched_text.clone()
+                            };
+                            
+                            debug!(
+                                "[Runner] 条件路由输入: matched_text='{}' (chars={}, bytes={})",
+                                matched_text, matched_text.chars().count(), matched_text.len()
+                            );
+                            
                             let target = routes
                                 .iter()
-                                .find(|r| matched_text.contains(&r.text_contains))
+                                .find(|r| {
+                                    let contains = matched_text.contains(&r.text_contains);
+                                    debug!("[Runner] 检查条件: '{}' contains '{}'? {}", matched_text, r.text_contains, contains);
+                                    contains
+                                })
                                 .map(|r| r.goto_step.as_str())
                                 .unwrap_or(default.as_str());
 
                             info!(
-                                "[Runner]   🔀 条件路由: matched='{}' → 跳转到 '{}'",
+                                "[Runner] 条件路由: matched='{}' -> 跳转到 '{}'",
                                 matched_text, target
                             );
+                            
+                            // 检查是否是特殊的 'finish' 标记
+                            if target == "finish" {
+                                info!("[Runner] 条件路由触发任务结束");
+                                emit_fn(RunnerEvent::Finished {
+                                    total_steps: executed_count,
+                                    elapsed_secs: start.elapsed().as_secs(),
+                                });
+                                return Ok(());
+                            }
+                            
                             loop_count += 1; // 条件路由通常意味着循环，计数
                             current_id = self.task
                                              .steps

@@ -115,11 +115,20 @@ const SmartTaskSidebar: React.FC<SmartTaskSidebarProps> = ({ visible, onClose, d
              ...r,
              goto_step: r.goto_step && r.goto_step !== '' ? r.goto_step : 'finish'
            }));
+           // 确保 default 不为空
+           if (!cleanStep.on_success.default || cleanStep.on_success.default === '') {
+             cleanStep.on_success.default = 'finish';
+           }
         }
 
+        // --- smart_sleep 处理：保持字符串格式传给后端，由后端负责变量替换 ---
         if (cleanStep.action.type === 'smart_sleep') {
-           // 只有在完全没有值的情况下才给兜底，否则保持原始引用（支持 {{variable}}）
-           if (!cleanStep.action.fallback_secs) cleanStep.action.fallback_secs = 5;
+           // 如果没有值，给默认值 5
+           if (!cleanStep.action.fallback_secs) {
+             cleanStep.action.fallback_secs = 5;
+           }
+           // 注意：保持原始格式（可能是数字或 "{{variable}}" 字符串）
+           // 后端会在运行时处理变量替换
         }
         return cleanStep;
       })
@@ -181,8 +190,44 @@ const SmartTaskSidebar: React.FC<SmartTaskSidebarProps> = ({ visible, onClose, d
           </div>
         </div>
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden px-5 py-5 gap-5">
-          <div className="flex items-center gap-2">
-            <input value={draftTask.name} onChange={(e) => setDraftName(e.target.value)} className="bg-transparent border-none text-[13px] font-black text-white/70 outline-none w-full" />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <input value={draftTask.name} onChange={(e) => setDraftName(e.target.value)} className="bg-transparent border-none text-[13px] font-black text-white/70 outline-none w-full" placeholder="任务名称" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center gap-2">
+                <span className="text-[9px] font-black text-white/30 uppercase">全局超时</span>
+                <input 
+                  type="number" 
+                  value={draftTask.global_timeout_secs} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val > 0) {
+                      useSmartTaskStore.setState(s => ({
+                        draftTask: { ...s.draftTask, global_timeout_secs: val }
+                      }));
+                    }
+                  }} 
+                  className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-[11px] text-[#0A84FF] text-center" 
+                />
+                <span className="text-[9px] text-white/30">秒</span>
+              </div>
+              <div className="flex-1 flex items-center gap-2">
+                <span className="text-[9px] font-black text-white/30 uppercase">最大循环</span>
+                <input 
+                  type="number" 
+                  value={draftTask.max_loop_count} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 0) {
+                      setMaxLoopCount(val);
+                    }
+                  }} 
+                  className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-[11px] text-[#0A84FF] text-center" 
+                />
+                <span className="text-[9px] text-white/30">次</span>
+              </div>
+            </div>
           </div>
           <div className="flex gap-2.5">
             <button onClick={() => setIsRecording(!isRecording)} className={`flex-1 h-10 rounded-xl text-[10px] border ${isRecording ? 'border-red-500 text-red-500' : 'border-white/10 text-white/30'}`}>{isRecording ? '录制中' : '动作录制'}</button>
